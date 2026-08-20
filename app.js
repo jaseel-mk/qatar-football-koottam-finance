@@ -3,33 +3,37 @@
    ------------------------------------------------------------
    Main JavaScript file
 
-   FEATURES:
+   FEATURES
+   ------------------------------------------------------------
    1. Supabase authentication
    2. Login / logout
    3. Forgot password
-   4. Password reset redirect
+   4. Password reset
    5. Members
-   6. Add / deactivate members
-   7. Matches
-   8. Expenses
-   9. Cash transactions
-   10. Dashboard
-   11. Reports
-   12. CSV export
+      - Add
+      - Edit
+      - Delete / deactivate
+      - Re-activate deleted member
+   6. Matches
+      - Add
+      - Edit
+      - Delete
+   7. Expenses
+      - Add
+      - Edit
+      - Delete
+   8. Cash transactions
+      - Add transfer
+      - Edit
+      - Delete
+   9. Dashboard
+   10. Reports
+   11. CSV export
 
-   IMPORTANT:
-   - SUPABASE_URL must be your project URL.
-   - Do NOT add /rest/v1/ to the URL.
-   - Never put the Supabase service_role key in this file.
-   - Only use the publishable/anon key in frontend code.
-
-   NEW MEMBER FEATURE:
-   - Members can be added from the Cash page.
-   - New members start with QAR 0 cash.
-   - Members automatically appear in transfer,
-     expense and collection-receiver dropdowns.
-   - Members are deactivated instead of deleted so
-     historical transactions remain safe.
+   IMPORTANT
+   ------------------------------------------------------------
+   - Use ONLY the Supabase publishable/anon key.
+   - NEVER use the service_role key in frontend JavaScript.
 ============================================================ */
 
 
@@ -37,35 +41,23 @@
    1. SUPABASE CONFIGURATION
 ============================================================ */
 
-// Your Supabase project URL
 const SUPABASE_URL =
   "https://soakyzawpmsoxqodskgr.supabase.co";
 
-// Your Supabase publishable/anon key
 const SUPABASE_KEY =
   "sb_publishable_knMPrkJfZ003rPvb7bRgRA_QJC8DWGJ";
-
-
-/* ============================================================
-   2. PASSWORD RESET PAGE
-============================================================ */
 
 const RESET_PAGE_URL =
   "https://jaseel-mk.github.io/qatar-football-koottam-finance/reset.html";
 
 
 /* ============================================================
-   3. CHECK WHETHER SUPABASE IS CONFIGURED
+   2. SUPABASE CLIENT
 ============================================================ */
 
 const configured =
   !SUPABASE_URL.startsWith("YOUR_") &&
   !SUPABASE_KEY.startsWith("YOUR_");
-
-
-/* ============================================================
-   4. CREATE SUPABASE CLIENT
-============================================================ */
 
 const sb = configured
   ? window.supabase.createClient(
@@ -73,13 +65,8 @@ const sb = configured
       SUPABASE_KEY,
       {
         auth: {
-          // Keep the user logged in after refreshing the page.
           persistSession: true,
-
-          // Automatically refresh expired sessions.
           autoRefreshToken: true,
-
-          // Detect authentication/password-reset links.
           detectSessionInUrl: true
         }
       }
@@ -88,13 +75,12 @@ const sb = configured
 
 
 /* ============================================================
-   5. APPLICATION STATE
+   3. APPLICATION STATE
 ============================================================ */
-
-const $ = id => document.getElementById(id);
 
 let state = {
   members: [],
+  allMembers: [],
   matches: [],
   expenses: [],
   ledger: [],
@@ -103,17 +89,17 @@ let state = {
 
 
 /* ============================================================
-   6. GENERAL HELPER FUNCTIONS
+   4. SHORTCUT
 ============================================================ */
 
+const $ = id =>
+  document.getElementById(id);
 
-/*
- * Format an amount as QAR.
- *
- * Example:
- * 150     -> QAR 150
- * 150.50  -> QAR 150.50
- */
+
+/* ============================================================
+   5. GENERAL HELPERS
+============================================================ */
+
 function money(n) {
 
   return `QAR ${Number(n || 0).toLocaleString(
@@ -126,12 +112,6 @@ function money(n) {
 }
 
 
-/*
- * Escape HTML characters.
- *
- * This prevents user-entered text from being interpreted
- * as HTML when inserted into the page.
- */
 function esc(v) {
 
   return String(v ?? "").replace(
@@ -147,17 +127,10 @@ function esc(v) {
 }
 
 
-/*
- * Convert YYYY-MM-DD into a readable date.
- *
- * Example:
- * 2026-08-19
- * becomes:
- * 19 Aug 2026
- */
 function dateText(v) {
 
-  if (!v) return "—";
+  if (!v)
+    return "—";
 
   return new Date(v + "T00:00:00")
     .toLocaleDateString(
@@ -171,9 +144,14 @@ function dateText(v) {
 }
 
 
-/*
- * Display a temporary notification.
- */
+function today() {
+
+  return new Date()
+    .toISOString()
+    .slice(0, 10);
+}
+
+
 function toast(msg) {
 
   const t = $("toast");
@@ -187,21 +165,45 @@ function toast(msg) {
 
   t.classList.add("show");
 
-  setTimeout(
-    () => t.classList.remove("show"),
-    2400
-  );
+  clearTimeout(window.__toastTimer);
+
+  window.__toastTimer =
+    setTimeout(
+      () => t.classList.remove("show"),
+      2400
+    );
 }
 
 
-/*
- * Return today's date in YYYY-MM-DD format.
- */
-function today() {
+function empty(text) {
 
-  return new Date()
-    .toISOString()
-    .slice(0, 10);
+  return `
+    <div class="empty">
+      ${esc(text)}
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   6. SUPABASE RESULT HANDLER
+============================================================ */
+
+async function requireOk(result) {
+
+  if (result.error) {
+
+    console.error(result.error);
+
+    toast(
+      result.error.message ||
+      "Database operation failed."
+    );
+
+    throw result.error;
+  }
+
+  return result.data;
 }
 
 
@@ -209,37 +211,30 @@ function today() {
    7. PASSWORD RESET
 ============================================================ */
 
-
-/*
- * Add "Forgot password?" below the login form.
- *
- * The button is created with JavaScript so the existing
- * index.html does not need a separate forgot-password button.
- */
 function addForgotPasswordLink() {
 
-  const form = $("loginForm");
+  const form =
+    $("loginForm");
 
-  if (!form) return;
+  if (!form)
+    return;
 
-  // Don't create it twice.
-  if ($("forgotPasswordBtn")) return;
-
+  if ($("forgotPasswordBtn"))
+    return;
 
   const wrapper =
     document.createElement("div");
 
   wrapper.style.cssText =
-    "text-align:center;" +
-    "margin-top:12px;";
-
+    "text-align:center;margin-top:12px;";
 
   const btn =
     document.createElement("button");
 
   btn.type = "button";
 
-  btn.id = "forgotPasswordBtn";
+  btn.id =
+    "forgotPasswordBtn";
 
   btn.textContent =
     "Forgot password?";
@@ -253,10 +248,8 @@ function addForgotPasswordLink() {
     "font-size:14px;" +
     "padding:8px;";
 
-
   btn.onclick =
     sendPasswordReset;
-
 
   wrapper.appendChild(btn);
 
@@ -267,9 +260,6 @@ function addForgotPasswordLink() {
 }
 
 
-/*
- * Send password reset email.
- */
 async function sendPasswordReset() {
 
   if (!sb) {
@@ -281,10 +271,8 @@ async function sendPasswordReset() {
     return;
   }
 
-
   const email =
     $("loginEmail")?.value?.trim();
-
 
   if (!email) {
 
@@ -297,17 +285,16 @@ async function sendPasswordReset() {
     return;
   }
 
-
   try {
 
     const { error } =
       await sb.auth.resetPasswordForEmail(
         email,
         {
-          redirectTo: RESET_PAGE_URL
+          redirectTo:
+            RESET_PAGE_URL
         }
       );
-
 
     if (error) {
 
@@ -321,17 +308,13 @@ async function sendPasswordReset() {
       return;
     }
 
-
     toast(
       "Password reset email sent. Check your email."
     );
 
   } catch (err) {
 
-    console.error(
-      "Password reset exception:",
-      err
-    );
+    console.error(err);
 
     toast(
       "Unable to send password reset email."
@@ -340,11 +323,6 @@ async function sendPasswordReset() {
 }
 
 
-/*
- * Update user's password.
- *
- * This function can also be used by reset.html.
- */
 async function updatePassword(newPassword) {
 
   if (!sb) {
@@ -355,7 +333,6 @@ async function updatePassword(newPassword) {
 
     return false;
   }
-
 
   if (
     !newPassword ||
@@ -369,25 +346,19 @@ async function updatePassword(newPassword) {
     return false;
   }
 
-
   const { error } =
     await sb.auth.updateUser({
       password: newPassword
     });
 
-
   if (error) {
 
-    console.error(
-      "Password update error:",
-      error
-    );
+    console.error(error);
 
     toast(error.message);
 
     return false;
   }
-
 
   toast(
     "Password updated successfully."
@@ -398,15 +369,11 @@ async function updatePassword(newPassword) {
 
 
 /* ============================================================
-   8. APPLICATION INITIALIZATION
+   8. INITIALIZATION
 ============================================================ */
 
 async function init() {
 
-  /*
-   * If Supabase configuration is missing,
-   * show configuration warning.
-   */
   if (!configured) {
 
     $("configWarning")
@@ -416,22 +383,13 @@ async function init() {
     return;
   }
 
-
-  // Add Forgot Password link.
   addForgotPasswordLink();
 
-
-  /*
-   * Check whether a user is already logged in.
-   */
   const {
     data: { session }
-  } = await sb.auth.getSession();
+  } =
+    await sb.auth.getSession();
 
-
-  /*
-   * Show correct screen.
-   */
   if (session) {
 
     showApp(session);
@@ -442,10 +400,6 @@ async function init() {
 
   }
 
-
-  /*
-   * Listen for authentication changes.
-   */
   sb.auth.onAuthStateChange(
     (_event, session) => {
 
@@ -465,7 +419,7 @@ async function init() {
 
 
 /* ============================================================
-   9. SHOW LOGIN PAGE
+   9. AUTH SCREEN
 ============================================================ */
 
 function showAuth() {
@@ -478,13 +432,12 @@ function showAuth() {
     ?.classList
     .add("hidden");
 
-
   addForgotPasswordLink();
 }
 
 
 /* ============================================================
-   10. SHOW MAIN APPLICATION
+   10. MAIN APPLICATION
 ============================================================ */
 
 async function showApp(session) {
@@ -497,10 +450,6 @@ async function showApp(session) {
     ?.classList
     .remove("hidden");
 
-
-  /*
-   * Display logged-in user's email.
-   */
   if ($("userEmail")) {
 
     $("userEmail").textContent =
@@ -509,138 +458,105 @@ async function showApp(session) {
 
   }
 
-
-  /*
-   * Load finance data.
-   */
   await loadData();
 }
 
 
 /* ============================================================
-   11. SUPABASE ERROR HANDLER
-============================================================ */
-
-async function requireOk(result) {
-
-  if (result.error) {
-
-    console.error(result.error);
-
-    toast(
-      result.error.message
-    );
-
-    throw result.error;
-  }
-
-  return result.data;
-}
-
-
-/* ============================================================
-   12. LOAD DATA FROM SUPABASE
+   11. LOAD DATA
 ============================================================ */
 
 async function loadData() {
 
+  if (!sb)
+    return;
+
   try {
 
-    /*
-     * Load all required tables simultaneously.
-     */
     const [
-      m,
-      ma,
-      e,
-      l
-    ] = await Promise.all([
+      membersResult,
+      matchesResult,
+      expensesResult,
+      ledgerResult
+    ] =
+      await Promise.all([
 
-      /*
-       * Active members.
-       *
-       * Only active members appear in the application.
-       */
-      sb
-        .from("members")
-        .select("*")
-        .eq("active", true)
-        .order("name"),
+        sb
+          .from("members")
+          .select("*")
+          .order("name"),
+
+        sb
+          .from("matches")
+          .select("*")
+          .order(
+            "match_number",
+            {
+              ascending: false
+            }
+          ),
+
+        sb
+          .from("expenses")
+          .select(
+            "*, members:paid_by(name)"
+          )
+          .order(
+            "expense_date",
+            {
+              ascending: false
+            }
+          ),
+
+        sb
+          .from("cash_transactions")
+          .select(
+            "*, from_member:from_member_id(name), to_member:to_member_id(name)"
+          )
+          .order(
+            "transaction_date",
+            {
+              ascending: false
+            }
+          )
+
+      ]);
 
 
-      /*
-       * Matches.
-       */
-      sb
-        .from("matches")
-        .select("*")
-        .order(
-          "match_number",
-          {
-            ascending: false
-          }
-        ),
-
-
-      /*
-       * Expenses.
-       */
-      sb
-        .from("expenses")
-        .select(
-          "*, members:paid_by(name)"
-        )
-        .order(
-          "expense_date",
-          {
-            ascending: false
-          }
-        ),
-
-
-      /*
-       * Cash ledger.
-       *
-       * IMPORTANT:
-       * Both from_member and to_member now request
-       * the member name.
-       */
-      sb
-        .from("cash_transactions")
-        .select(`
-          *,
-          from_member:from_member_id(name),
-          to_member:to_member_id(name)
-        `)
-        .order(
-          "transaction_date",
-          {
-            ascending: false
-          }
-        )
-
-    ]);
+    state.allMembers =
+      await requireOk(
+        membersResult
+      ) || [];
 
 
     /*
-     * Store results.
+     * Only active members are used for
+     * normal cash calculations.
      */
     state.members =
-      await requireOk(m) || [];
+      state.allMembers.filter(
+        m => m.active === true
+      );
+
 
     state.matches =
-      await requireOk(ma) || [];
+      await requireOk(
+        matchesResult
+      ) || [];
+
 
     state.expenses =
-      await requireOk(e) || [];
+      await requireOk(
+        expensesResult
+      ) || [];
+
 
     state.ledger =
-      await requireOk(l) || [];
+      await requireOk(
+        ledgerResult
+      ) || [];
 
 
-    /*
-     * Refresh interface.
-     */
     render();
 
   } catch (e) {
@@ -649,12 +565,13 @@ async function loadData() {
       "Data loading error:",
       e
     );
+
   }
 }
 
 
 /* ============================================================
-   13. MATCH BALANCE
+   12. TOTALS
 ============================================================ */
 
 function matchBalance(match) {
@@ -662,14 +579,15 @@ function matchBalance(match) {
   const expenses =
     state.expenses
       .filter(
-        x => x.match_id === match.id
+        x =>
+          x.match_id ===
+          match.id
       )
       .reduce(
         (s, x) =>
           s + Number(x.amount),
         0
       );
-
 
   return (
     Number(match.total_collected) -
@@ -678,79 +596,59 @@ function matchBalance(match) {
 }
 
 
-/* ============================================================
-   14. CASH BALANCE BY MEMBER
-============================================================ */
-
 function cashByMember() {
 
   const out = {};
 
+  state.members.forEach(
+    m => {
 
-  /*
-   * Start every active member with QAR 0.
-   *
-   * This is what allows newly added members to
-   * automatically appear with a zero balance.
-   */
-  state.members.forEach(m => {
-
-    out[m.id] = {
-      ...m,
-      balance: 0
-    };
-
-  });
-
-
-  /*
-   * Apply every cash transaction.
-   */
-  state.ledger.forEach(t => {
-
-    const amount =
-      Number(t.amount);
-
-
-    /*
-     * Money received.
-     */
-    if (
-      t.to_member_id &&
-      out[t.to_member_id]
-    ) {
-
-      out[
-        t.to_member_id
-      ].balance += amount;
+      out[m.id] = {
+        ...m,
+        balance: 0
+      };
 
     }
+  );
 
 
-    /*
-     * Money paid/transferred.
-     */
-    if (
-      t.from_member_id &&
-      out[t.from_member_id]
-    ) {
+  state.ledger.forEach(
+    t => {
 
-      out[
-        t.from_member_id
-      ].balance -= amount;
+      const amount =
+        Number(t.amount);
+
+
+      if (
+        t.to_member_id &&
+        out[t.to_member_id]
+      ) {
+
+        out[
+          t.to_member_id
+        ].balance += amount;
+
+      }
+
+
+      if (
+        t.from_member_id &&
+        out[t.from_member_id]
+      ) {
+
+        out[
+          t.from_member_id
+        ].balance -= amount;
+
+      }
 
     }
-
-  });
+  );
 
 
   return Object.values(out);
 }
 
-
-/* ============================================================
-   15. TOTAL FINANCE VALUES
-============================================================ */
 
 function totals() {
 
@@ -758,7 +656,9 @@ function totals() {
     state.matches.reduce(
       (s, m) =>
         s +
-        Number(m.total_collected),
+        Number(
+          m.total_collected
+        ),
       0
     );
 
@@ -783,14 +683,16 @@ function totals() {
   return {
     collected,
     expenses,
-    net: collected - expenses,
+    net:
+      collected -
+      expenses,
     cash
   };
 }
 
 
 /* ============================================================
-   16. MAIN RENDER FUNCTION
+   13. RENDER EVERYTHING
 ============================================================ */
 
 function render() {
@@ -813,12 +715,13 @@ function render() {
 
 
 /* ============================================================
-   17. DASHBOARD
+   14. DASHBOARD
 ============================================================ */
 
 function renderDashboard() {
 
-  const t = totals();
+  const t =
+    totals();
 
 
   if ($("totalCash"))
@@ -851,9 +754,6 @@ function renderDashboard() {
       state.matches.length;
 
 
-  /*
-   * Display cash balance for every active member.
-   */
   const people =
     cashByMember();
 
@@ -863,8 +763,9 @@ function renderDashboard() {
     $("cashCards").innerHTML =
       people
         .map(
-          p =>
-            `<div class="cash-card">
+          p => `
+            <div class="cash-card">
+
               <div class="person">
                 ${esc(p.name)}
               </div>
@@ -872,7 +773,9 @@ function renderDashboard() {
               <div class="amount">
                 ${money(p.balance)}
               </div>
-            </div>`
+
+            </div>
+          `
         )
         .join("") ||
       empty("No members");
@@ -880,9 +783,6 @@ function renderDashboard() {
   }
 
 
-  /*
-   * Cash status.
-   */
   if ($("cashStatus")) {
 
     $("cashStatus").innerHTML =
@@ -902,9 +802,6 @@ function renderDashboard() {
   }
 
 
-  /*
-   * Show latest five matches.
-   */
   const recent =
     state.matches.slice(0, 5);
 
@@ -913,18 +810,18 @@ function renderDashboard() {
 
     $("recentMatches").innerHTML =
       recent
-        .map(
-          m => matchCard(m)
-        )
+        .map(matchCard)
         .join("") ||
-      empty("No matches yet.");
+      empty(
+        "No matches yet."
+      );
 
   }
 }
 
 
 /* ============================================================
-   18. MATCH CARD
+   15. MATCH CARD
 ============================================================ */
 
 function matchCard(m) {
@@ -932,22 +829,23 @@ function matchCard(m) {
   const b =
     matchBalance(m);
 
-
   return `
     <div class="match-card">
 
       <div>
 
         <strong>
-          Match #${m.match_number}
+          Match #${esc(m.match_number)}
         </strong>
 
         <div class="match-meta">
           ${dateText(m.match_date)}
           ·
-          ${m.players} players
+          ${esc(m.players)} players
           ·
-          Collected ${money(m.total_collected)}
+          Collected ${money(
+            m.total_collected
+          )}
         </div>
 
       </div>
@@ -972,21 +870,7 @@ function matchCard(m) {
 
 
 /* ============================================================
-   19. EMPTY STATE
-============================================================ */
-
-function empty(text) {
-
-  return `
-    <div class="empty">
-      ${esc(text)}
-    </div>
-  `;
-}
-
-
-/* ============================================================
-   20. MATCHES PAGE
+   16. MATCHES TABLE
 ============================================================ */
 
 function renderMatches() {
@@ -1000,7 +884,8 @@ function renderMatches() {
 
   const f =
     $("matchFilter")
-      ?.value || "all";
+      ?.value ||
+    "all";
 
 
   let rows =
@@ -1012,9 +897,6 @@ function renderMatches() {
     );
 
 
-  /*
-   * Filter by balance.
-   */
   if (f !== "all") {
 
     rows =
@@ -1047,7 +929,7 @@ function renderMatches() {
               <th>Collected</th>
               <th>Expenses</th>
               <th>Balance</th>
-              <th></th>
+              <th>Actions</th>
             </tr>
 
           </thead>
@@ -1055,84 +937,110 @@ function renderMatches() {
           <tbody>
 
             ${rows
-              .map(m => {
+              .map(
+                m => {
 
-                const ex =
-                  state.expenses
-                    .filter(
-                      e =>
-                        e.match_id === m.id
-                    )
-                    .reduce(
-                      (s, e) =>
-                        s +
-                        Number(e.amount),
-                      0
-                    );
-
-
-                const b =
-                  Number(
-                    m.total_collected
-                  ) - ex;
+                  const ex =
+                    state.expenses
+                      .filter(
+                        e =>
+                          e.match_id ===
+                          m.id
+                      )
+                      .reduce(
+                        (s, e) =>
+                          s +
+                          Number(
+                            e.amount
+                          ),
+                        0
+                      );
 
 
-                return `
-                  <tr>
+                  const b =
+                    Number(
+                      m.total_collected
+                    ) - ex;
 
-                    <td>
-                      <strong>
-                        #${m.match_number}
-                      </strong>
-                    </td>
 
-                    <td>
-                      ${dateText(
-                        m.match_date
-                      )}
-                    </td>
+                  return `
+                    <tr>
 
-                    <td>
-                      ${m.players}
-                    </td>
+                      <td>
+                        <strong>
+                          #${esc(
+                            m.match_number
+                          )}
+                        </strong>
+                      </td>
 
-                    <td>
-                      ${money(
-                        m.total_collected
-                      )}
-                    </td>
+                      <td>
+                        ${dateText(
+                          m.match_date
+                        )}
+                      </td>
 
-                    <td>
-                      ${money(ex)}
-                    </td>
+                      <td>
+                        ${esc(
+                          m.players
+                        )}
+                      </td>
 
-                    <td
-                      class="${
-                        b >= 0
-                          ? "positive"
-                          : "negative"
-                      }"
-                    >
-                      <strong>
-                        ${money(b)}
-                      </strong>
-                    </td>
+                      <td>
+                        ${money(
+                          m.total_collected
+                        )}
+                      </td>
 
-                    <td>
+                      <td>
+                        ${money(ex)}
+                      </td>
 
-                      <button
-                        class="text-btn"
-                        onclick='openMatch(${JSON.stringify(m.id)})'
+                      <td
+                        class="${
+                          b >= 0
+                            ? "positive"
+                            : "negative"
+                        }"
                       >
-                        View
-                      </button>
+                        <strong>
+                          ${money(b)}
+                        </strong>
+                      </td>
 
-                    </td>
+                      <td>
 
-                  </tr>
-                `;
+                        <button
+                          class="text-btn"
+                          type="button"
+                          onclick='openMatch(${JSON.stringify(m.id)})'
+                        >
+                          View
+                        </button>
 
-              })
+                        <button
+                          class="text-btn"
+                          type="button"
+                          onclick='editMatch(${JSON.stringify(m.id)})'
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          class="text-btn negative"
+                          type="button"
+                          onclick='deleteMatch(${JSON.stringify(m.id)})'
+                        >
+                          Delete
+                        </button>
+
+                      </td>
+
+                    </tr>
+                  `;
+
+                }
+              )
               .join("")}
 
           </tbody>
@@ -1147,7 +1055,7 @@ function renderMatches() {
 
 
 /* ============================================================
-   21. VIEW MATCH
+   17. VIEW MATCH
 ============================================================ */
 
 function openMatch(id) {
@@ -1156,7 +1064,6 @@ function openMatch(id) {
     state.matches.find(
       x => x.id === id
     );
-
 
   if (!m)
     return;
@@ -1172,13 +1079,13 @@ function openMatch(id) {
   openModal(`
 
     <h3>
-      Match #${m.match_number}
+      Match #${esc(m.match_number)}
     </h3>
 
     <p class="muted">
       ${dateText(m.match_date)}
       ·
-      ${m.players} players
+      ${esc(m.players)} players
     </p>
 
 
@@ -1199,8 +1106,11 @@ function openMatch(id) {
         <strong>
           ${money(
             ex.reduce(
-              (s,e) =>
-                s + Number(e.amount),
+              (s, e) =>
+                s +
+                Number(
+                  e.amount
+                ),
               0
             )
           )}
@@ -1241,23 +1151,26 @@ function openMatch(id) {
     ${
       ex
         .map(
-          e =>
-            `
+          e => `
             <div class="match-card">
 
               <div>
 
                 <strong>
-                  ${esc(e.category)}
+                  ${esc(
+                    e.category
+                  )}
                 </strong>
 
                 <div class="match-meta">
                   ${esc(
-                    e.paid_by_name || ""
+                    e.members?.name ||
+                    ""
                   )}
                   ·
                   ${esc(
-                    e.description || ""
+                    e.description ||
+                    ""
                   )}
                 </div>
 
@@ -1268,10 +1181,12 @@ function openMatch(id) {
               </strong>
 
             </div>
-            `
+          `
         )
         .join("") ||
-      empty("No expenses")
+      empty(
+        "No expenses"
+      )
     }
 
   `);
@@ -1279,7 +1194,471 @@ function openMatch(id) {
 
 
 /* ============================================================
-   22. ADD MATCH FORM
+   18. MEMBER OPTIONS
+============================================================ */
+
+function memberOptions(
+  selected = "",
+  includeInactive = false
+) {
+
+  const list =
+    includeInactive
+      ? state.allMembers
+      : state.members;
+
+
+  return list
+    .filter(
+      m =>
+        includeInactive ||
+        m.active === true
+    )
+    .map(
+      m => `
+        <option
+          value="${esc(m.id)}"
+          ${
+            m.id === selected
+              ? "selected"
+              : ""
+          }
+        >
+          ${esc(m.name)}
+          ${
+            !m.active
+              ? " (inactive)"
+              : ""
+          }
+        </option>
+      `
+    )
+    .join("");
+}
+
+
+/* ============================================================
+   19. ADD MEMBER
+============================================================ */
+
+function openMemberForm() {
+
+  openModal(`
+
+    <h3>
+      Add Member
+    </h3>
+
+
+    <form id="memberForm">
+
+      <label>
+
+        Member name
+
+        <input
+          id="memberName"
+          type="text"
+          required
+          maxlength="100"
+          placeholder="Enter member name"
+        >
+
+      </label>
+
+
+      <p class="small muted">
+        If this member previously existed and was
+        deactivated, the existing member will be
+        reactivated instead of creating a duplicate.
+      </p>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary"
+          type="submit"
+        >
+          Add Member
+        </button>
+
+      </div>
+
+    </form>
+
+  `);
+
+
+  $("memberForm").onsubmit =
+    saveMember;
+
+
+  setTimeout(
+    () =>
+      $("memberName")?.focus(),
+    50
+  );
+}
+
+
+/* ============================================================
+   20. SAVE / REACTIVATE MEMBER
+============================================================ */
+
+async function saveMember(ev) {
+
+  ev.preventDefault();
+
+
+  const name =
+    $("memberName")
+      ?.value
+      ?.trim();
+
+
+  if (!name) {
+
+    toast(
+      "Enter a member name."
+    );
+
+    return;
+  }
+
+
+  /*
+   * IMPORTANT:
+   *
+   * Your SQL has:
+   *
+   * name text not null unique
+   *
+   * Therefore a deactivated member with the same
+   * name still exists in the database.
+   *
+   * Instead of trying INSERT and getting a duplicate
+   * error, first search for the existing member.
+   */
+  const existing =
+    state.allMembers.find(
+      m =>
+        m.name.trim().toLowerCase() ===
+        name.toLowerCase()
+    );
+
+
+  if (existing) {
+
+    /*
+     * Existing active member
+     */
+    if (existing.active) {
+
+      toast(
+        "A member with this name already exists."
+      );
+
+      return;
+    }
+
+
+    /*
+     * Existing inactive member.
+     *
+     * Reactivate it.
+     */
+    await requireOk(
+      await sb
+        .from("members")
+        .update({
+          active: true
+        })
+        .eq(
+          "id",
+          existing.id
+        )
+    );
+
+
+    closeModal();
+
+    toast(
+      `${existing.name} reactivated`
+    );
+
+    await loadData();
+
+    return;
+  }
+
+
+  /*
+   * Completely new member.
+   */
+  await requireOk(
+    await sb
+      .from("members")
+      .insert({
+        name,
+        active: true
+      })
+  );
+
+
+  closeModal();
+
+  toast(
+    "Member added successfully"
+  );
+
+  await loadData();
+}
+
+
+/* ============================================================
+   21. EDIT MEMBER
+============================================================ */
+
+function editMember(id) {
+
+  const member =
+    state.allMembers.find(
+      m => m.id === id
+    );
+
+  if (!member)
+    return;
+
+
+  openModal(`
+
+    <h3>
+      Edit Member
+    </h3>
+
+
+    <form id="editMemberForm">
+
+      <label>
+
+        Member name
+
+        <input
+          id="editMemberName"
+          type="text"
+          value="${esc(
+            member.name
+          )}"
+          required
+          maxlength="100"
+        >
+
+      </label>
+
+
+      <label style="margin-top:13px;">
+
+        Status
+
+        <select id="editMemberActive">
+
+          <option
+            value="true"
+            ${
+              member.active
+                ? "selected"
+                : ""
+            }
+          >
+            Active
+          </option>
+
+          <option
+            value="false"
+            ${
+              !member.active
+                ? "selected"
+                : ""
+            }
+          >
+            Inactive
+          </option>
+
+        </select>
+
+      </label>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary"
+          type="submit"
+        >
+          Save Changes
+        </button>
+
+      </div>
+
+    </form>
+
+  `);
+
+
+  $("editMemberForm").onsubmit =
+    async ev => {
+
+      ev.preventDefault();
+
+
+      const newName =
+        $("editMemberName")
+          .value
+          .trim();
+
+
+      const active =
+        $("editMemberActive")
+          .value === "true";
+
+
+      if (!newName) {
+
+        toast(
+          "Member name cannot be empty."
+        );
+
+        return;
+      }
+
+
+      /*
+       * Check duplicate name.
+       */
+      const duplicate =
+        state.allMembers.find(
+          m =>
+            m.id !== id &&
+            m.name
+              .trim()
+              .toLowerCase() ===
+            newName.toLowerCase()
+        );
+
+
+      if (duplicate) {
+
+        toast(
+          "Another member already has this name."
+        );
+
+        return;
+      }
+
+
+      await requireOk(
+        await sb
+          .from("members")
+          .update({
+            name: newName,
+            active
+          })
+          .eq(
+            "id",
+            id
+          )
+      );
+
+
+      closeModal();
+
+      toast(
+        "Member updated"
+      );
+
+      await loadData();
+
+    };
+}
+
+
+/* ============================================================
+   22. DELETE / DEACTIVATE MEMBER
+============================================================ */
+
+async function deleteMember(id) {
+
+  const member =
+    state.allMembers.find(
+      m => m.id === id
+    );
+
+  if (!member)
+    return;
+
+
+  /*
+   * We do NOT physically delete the member.
+   *
+   * We set active=false.
+   *
+   * This preserves old financial records.
+   *
+   * When the same name is added again,
+   * saveMember() automatically reactivates it.
+   */
+  const ok =
+    confirm(
+      `Deactivate "${member.name}"?\n\n` +
+      `Existing matches, expenses and cash records ` +
+      `will be preserved.`
+    );
+
+
+  if (!ok)
+    return;
+
+
+  await requireOk(
+    await sb
+      .from("members")
+      .update({
+        active: false
+      })
+      .eq(
+        "id",
+        id
+      )
+  );
+
+
+  toast(
+    `${member.name} deactivated`
+  );
+
+  await loadData();
+}
+
+
+/* ============================================================
+   23. MATCH FORM
 ============================================================ */
 
 function openMatchForm() {
@@ -1401,7 +1780,6 @@ function openMatchForm() {
       <p class="small muted">
         Total collected is initially
         Players × Collection/player.
-        You can adjust it before saving.
       </p>
 
 
@@ -1418,6 +1796,7 @@ function openMatchForm() {
 
         <button
           class="primary"
+          type="submit"
         >
           Save Match
         </button>
@@ -1429,38 +1808,7 @@ function openMatchForm() {
   `);
 
 
-  /*
-   * Automatically calculate collection.
-   */
-  const updateCollected =
-    () => {
-
-      $("mfCollected").value =
-        (
-          Number(
-            $("mfPlayers").value
-          ) *
-          Number(
-            $("mfRate").value
-          )
-        ).toFixed(2);
-
-    };
-
-
-  $("mfPlayers")
-    ?.addEventListener(
-      "input",
-      updateCollected
-    );
-
-
-  $("mfRate")
-    ?.addEventListener(
-      "input",
-      updateCollected
-    );
-
+  setupMatchCalculation();
 
   $("matchForm").onsubmit =
     saveMatch;
@@ -1468,7 +1816,54 @@ function openMatchForm() {
 
 
 /* ============================================================
-   23. SAVE MATCH
+   24. MATCH CALCULATION
+============================================================ */
+
+function setupMatchCalculation() {
+
+  const calculate =
+    () => {
+
+      const players =
+        Number(
+          $("mfPlayers")?.value || 0
+        );
+
+      const rate =
+        Number(
+          $("mfRate")?.value || 0
+        );
+
+      if ($("mfCollected")) {
+
+        $("mfCollected").value =
+          (
+            players *
+            rate
+          ).toFixed(2);
+
+      }
+
+    };
+
+
+  $("mfPlayers")
+    ?.addEventListener(
+      "input",
+      calculate
+    );
+
+
+  $("mfRate")
+    ?.addEventListener(
+      "input",
+      calculate
+    );
+}
+
+
+/* ============================================================
+   25. SAVE MATCH
 ============================================================ */
 
 async function saveMatch(ev) {
@@ -1508,167 +1903,222 @@ async function saveMatch(ev) {
   };
 
 
-  /*
-   * Insert match.
-   */
+  try {
+
+    const m =
+      await requireOk(
+        await sb
+          .from("matches")
+          .insert(row)
+          .select()
+          .single()
+      );
+
+
+    const receiver =
+      $("mfReceiver")
+        ?.value;
+
+
+    if (
+      receiver &&
+      Number(
+        m.total_collected
+      ) > 0
+    ) {
+
+      await requireOk(
+        await sb
+          .from("cash_transactions")
+          .insert({
+
+            transaction_date:
+              m.match_date,
+
+            type:
+              "match_collection",
+
+            amount:
+              Number(
+                m.total_collected
+              ),
+
+            to_member_id:
+              receiver,
+
+            match_id:
+              m.id,
+
+            description:
+              `Match #${m.match_number} collection`
+
+          })
+      );
+
+    }
+
+
+    closeModal();
+
+    toast(
+      "Match added successfully"
+    );
+
+    await loadData();
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+}
+
+
+/* ============================================================
+   26. EDIT MATCH
+============================================================ */
+
+function editMatch(id) {
+
   const m =
-    await requireOk(
-      await sb
-        .from("matches")
-        .insert(row)
-        .select()
-        .single()
+    state.matches.find(
+      x => x.id === id
     );
+
+  if (!m)
+    return;
 
 
   /*
-   * Record who received the collection.
+   * Find existing collection transaction.
    */
-  const receiver =
-    $("mfReceiver").value;
-
-
-  if (
-    receiver &&
-    Number(
-      m.total_collected
-    ) > 0
-  ) {
-
-    await requireOk(
-      await sb
-        .from("cash_transactions")
-        .insert({
-
-          transaction_date:
-            m.match_date,
-
-          type:
-            "match_collection",
-
-          amount:
-            Number(
-              m.total_collected
-            ),
-
-          to_member_id:
-            receiver,
-
-          match_id:
-            m.id,
-
-          description:
-            `Match #${m.match_number} collection`
-
-        })
+  const collectionTx =
+    state.ledger.find(
+      t =>
+        t.type ===
+          "match_collection" &&
+        t.match_id === id
     );
 
-  }
-
-
-  closeModal();
-
-  toast(
-    "Match added successfully"
-  );
-
-  await loadData();
-}
-
-
-/* ============================================================
-   24. MEMBER OPTIONS
-============================================================ */
-
-
-/*
- * Generate options for active members.
- *
- * This is used in:
- * - Match collection receiver
- * - Cash transfer From
- * - Cash transfer To
- * - Expense Paid by
- */
-function memberOptions() {
-
-  if (!state.members.length) {
-
-    return `
-      <option value="">
-        No active members
-      </option>
-    `;
-
-  }
-
-
-  return state.members
-    .map(
-      m =>
-        `<option value="${esc(m.id)}">
-          ${esc(m.name)}
-        </option>`
-    )
-    .join("");
-}
-
-
-/* ============================================================
-   25. ADD MEMBER
-============================================================ */
-
-
-/*
- * Open Add Member form.
- *
- * New members are stored in the existing
- * public.members table.
- *
- * No cash transaction is created here.
- * Therefore the new member automatically starts
- * with QAR 0.
- */
-function openAddMemberForm() {
 
   openModal(`
 
     <h3>
-      Add Member
+      Edit Match #${esc(
+        m.match_number
+      )}
     </h3>
 
-    <p class="muted">
-      Add a new person who can hold or receive
-      football group cash.
-    </p>
 
-
-    <form id="memberForm">
+    <form id="editMatchForm">
 
       <div class="form-grid">
 
-        <label class="full-row">
-
-          Member name
+        <label>
+          Match number
 
           <input
-            id="memberName"
-            type="text"
-            maxlength="100"
-            placeholder="Enter member name"
-            autocomplete="off"
+            id="emNum"
+            type="number"
+            min="1"
+            value="${esc(
+              m.match_number
+            )}"
             required
           >
+        </label>
+
+
+        <label>
+          Date
+
+          <input
+            id="emDate"
+            type="date"
+            value="${esc(
+              m.match_date
+            )}"
+            required
+          >
+        </label>
+
+
+        <label>
+          Players
+
+          <input
+            id="emPlayers"
+            type="number"
+            min="0"
+            value="${esc(
+              m.players
+            )}"
+            required
+          >
+        </label>
+
+
+        <label>
+          Collection / player
+
+          <input
+            id="emRate"
+            type="number"
+            min="0"
+            step=".01"
+            value="${esc(
+              m.collection_per_player
+            )}"
+            required
+          >
+        </label>
+
+
+        <label>
+          Collected
+
+          <input
+            id="emCollected"
+            type="number"
+            min="0"
+            step=".01"
+            value="${esc(
+              m.total_collected
+            )}"
+            required
+          >
+        </label>
+
+
+        <label>
+          Collection received by
+
+          <select id="emReceiver">
+
+            ${memberOptions(
+              collectionTx
+                ?.to_member_id || ""
+            )}
+
+          </select>
+
+        </label>
+
+
+        <label class="full-row">
+
+          Notes
+
+          <textarea
+            id="emNotes"
+            rows="3"
+          >${esc(
+            m.notes || ""
+          )}</textarea>
 
         </label>
 
       </div>
-
-
-      <p class="small muted">
-        The new member will start with
-        QAR 0 cash.
-      </p>
 
 
       <div class="modal-actions">
@@ -1683,10 +2133,10 @@ function openAddMemberForm() {
 
 
         <button
-          type="submit"
           class="primary"
+          type="submit"
         >
-          Add Member
+          Save Changes
         </button>
 
       </div>
@@ -1696,211 +2146,254 @@ function openAddMemberForm() {
   `);
 
 
-  $("memberForm").onsubmit =
-    saveMember;
+  $("editMatchForm").onsubmit =
+    async ev => {
+
+      ev.preventDefault();
 
 
-  /*
-   * Automatically focus the name field.
-   */
-  setTimeout(
-    () => $("memberName")?.focus(),
-    50
-  );
-}
+      const updated = {
+
+        match_number:
+          Number(
+            $("emNum").value
+          ),
+
+        match_date:
+          $("emDate").value,
+
+        players:
+          Number(
+            $("emPlayers").value
+          ),
+
+        collection_per_player:
+          Number(
+            $("emRate").value
+          ),
+
+        total_collected:
+          Number(
+            $("emCollected").value
+          ),
+
+        notes:
+          $("emNotes").value ||
+          null
+
+      };
 
 
-/*
- * Save a new member.
- */
-async function saveMember(ev) {
+      try {
 
-  ev.preventDefault();
-
-
-  const name =
-    $("memberName")
-      ?.value
-      ?.trim();
-
-
-  /*
-   * Validate name.
-   */
-  if (!name) {
-
-    toast(
-      "Enter a member name."
-    );
-
-    return;
-  }
+        await requireOk(
+          await sb
+            .from("matches")
+            .update(updated)
+            .eq(
+              "id",
+              id
+            )
+        );
 
 
-  /*
-   * Check against currently loaded members.
-   *
-   * The database also has a UNIQUE constraint on name,
-   * so this is only a friendly first check.
-   */
-  const duplicate =
-    state.members.some(
-      m =>
-        m.name.trim().toLowerCase() ===
-        name.toLowerCase()
-    );
+        /*
+         * Keep collection transaction synchronized.
+         */
+        if (collectionTx) {
+
+          const receiver =
+            $("emReceiver").value;
 
 
-  if (duplicate) {
+          if (
+            receiver &&
+            updated.total_collected > 0
+          ) {
 
-    toast(
-      "This member already exists."
-    );
+            await requireOk(
+              await sb
+                .from(
+                  "cash_transactions"
+                )
+                .update({
 
-    return;
-  }
+                  transaction_date:
+                    updated.match_date,
+
+                  amount:
+                    updated.total_collected,
+
+                  to_member_id:
+                    receiver,
+
+                  description:
+                    `Match #${updated.match_number} collection`
+
+                })
+                .eq(
+                  "id",
+                  collectionTx.id
+                )
+            );
+
+          } else {
+
+            await requireOk(
+              await sb
+                .from(
+                  "cash_transactions"
+                )
+                .delete()
+                .eq(
+                  "id",
+                  collectionTx.id
+                )
+            );
+
+          }
+
+        } else if (
+          updated.total_collected > 0 &&
+          $("emReceiver").value
+        ) {
+
+          /*
+           * Old match without a collection
+           * ledger record.
+           */
+          await requireOk(
+            await sb
+              .from(
+                "cash_transactions"
+              )
+              .insert({
+
+                transaction_date:
+                  updated.match_date,
+
+                type:
+                  "match_collection",
+
+                amount:
+                  updated.total_collected,
+
+                to_member_id:
+                  $("emReceiver").value,
+
+                match_id:
+                  id,
+
+                description:
+                  `Match #${updated.match_number} collection`
+
+              })
+          );
+
+        }
 
 
-  try {
+        closeModal();
 
-    /*
-     * Insert new active member.
-     *
-     * No cash transaction is inserted.
-     * Therefore the starting cash is QAR 0.
-     */
-    await requireOk(
-      await sb
-        .from("members")
-        .insert({
-          name,
-          active: true
-        })
-    );
+        toast(
+          "Match updated"
+        );
 
+        await loadData();
 
-    closeModal();
+      } catch (err) {
 
-    toast(
-      `${name} added successfully`
-    );
+        console.error(err);
 
+      }
 
-    /*
-     * Reload members and all finance data.
-     */
-    await loadData();
-
-    /*
-     * Return to Cash page so the newly added
-     * member is immediately visible.
-     */
-    switchPage("cash");
-
-  } catch (error) {
-
-    /*
-     * PostgreSQL UNIQUE constraint may catch a duplicate
-     * that was added by another user at the same time.
-     */
-    if (
-      String(
-        error?.message || ""
-      ).toLowerCase().includes(
-        "duplicate"
-      )
-    ) {
-
-      toast(
-        "A member with this name already exists."
-      );
-
-    } else {
-
-      console.error(
-        "Add member error:",
-        error
-      );
-
-    }
-
-  }
+    };
 }
 
 
 /* ============================================================
-   26. DEACTIVATE MEMBER
+   27. DELETE MATCH
 ============================================================ */
 
+async function deleteMatch(id) {
 
-/*
- * Deactivate a member instead of deleting them.
- *
- * IMPORTANT:
- * We do NOT delete the member because historical
- * cash transactions and expenses may reference them.
- *
- * Their old transactions remain in the database.
- * They simply disappear from the active member list.
- */
-async function deactivateMember(id) {
-
-  const member =
-    state.members.find(
-      m => m.id === id
+  const m =
+    state.matches.find(
+      x => x.id === id
     );
 
-
-  if (!member)
+  if (!m)
     return;
 
 
-  /*
-   * Prevent accidental removal.
-   */
-  const confirmed =
+  const expenseCount =
+    state.expenses.filter(
+      e =>
+        e.match_id === id
+    ).length;
+
+
+  const ok =
     confirm(
-      `Remove ${member.name} from the active member list?\n\n` +
-      `Their historical transactions will be preserved.`
+      `Delete Match #${m.match_number}?\n\n` +
+      `This will also delete ${expenseCount} ` +
+      `expense record(s) belonging to this match ` +
+      `because your SQL uses ON DELETE CASCADE.\n\n` +
+      `Cash transactions will remain unless manually deleted.`
     );
 
 
-  if (!confirmed)
+  if (!ok)
     return;
 
 
   try {
 
+    /*
+     * Delete cash collection/payment records
+     * first so no orphan financial entries remain.
+     */
     await requireOk(
       await sb
-        .from("members")
-        .update({
-          active: false
-        })
-        .eq("id", id)
+        .from("cash_transactions")
+        .delete()
+        .eq(
+          "match_id",
+          id
+        )
+    );
+
+
+    /*
+     * Expenses cascade automatically.
+     */
+    await requireOk(
+      await sb
+        .from("matches")
+        .delete()
+        .eq(
+          "id",
+          id
+        )
     );
 
 
     toast(
-      `${member.name} removed from active members`
+      `Match #${m.match_number} deleted`
     );
-
 
     await loadData();
 
-  } catch (error) {
+  } catch (err) {
 
-    console.error(
-      "Deactivate member error:",
-      error
-    );
+    console.error(err);
 
   }
 }
 
 
 /* ============================================================
-   27. CASH PAGE
+   28. CASH PAGE
 ============================================================ */
 
 function renderCash() {
@@ -1909,50 +2402,68 @@ function renderCash() {
     cashByMember();
 
 
-  /*
-   * Render active cash holders.
-   */
   if ($("cashPeople")) {
 
     $("cashPeople").innerHTML =
       people
         .map(
-          p =>
-            `
+          p => `
             <div class="cash-card">
 
-              <div class="person">
-                ${esc(p.name)}
+              <div
+                style="display:flex;
+                justify-content:space-between;
+                align-items:center;"
+              >
+
+                <div class="person">
+                  ${esc(p.name)}
+                </div>
+
+                <div>
+
+                  <button
+                    class="text-btn"
+                    type="button"
+                    onclick='editMember(${JSON.stringify(p.id)})'
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="text-btn negative"
+                    type="button"
+                    onclick='deleteMember(${JSON.stringify(p.id)})'
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
               </div>
+
 
               <div class="amount">
                 ${money(p.balance)}
               </div>
 
+
               <div class="match-meta">
                 Current ledger balance
               </div>
 
-              <button
-                class="text-btn"
-                style="margin-top:10px"
-                onclick='deactivateMember(${JSON.stringify(p.id)})'
-              >
-                Remove
-              </button>
-
             </div>
-            `
+          `
         )
         .join("") ||
-      empty("No members");
+      empty(
+        "No members"
+      );
+
 
   }
 
 
-  /*
-   * Render cash ledger.
-   */
   if (!$("cashLedger"))
     return;
 
@@ -1972,6 +2483,7 @@ function renderCash() {
               <th>From</th>
               <th>To</th>
               <th>Description</th>
+              <th>Actions</th>
             </tr>
 
           </thead>
@@ -1981,8 +2493,8 @@ function renderCash() {
 
             ${state.ledger
               .map(
-                t =>
-                  `
+                t => `
+
                   <tr>
 
                     <td>
@@ -1991,22 +2503,29 @@ function renderCash() {
                       )}
                     </td>
 
+
                     <td>
+
                       <span class="pill">
                         ${esc(
                           String(
-                            t.type || ""
+                            t.type
                           ).replaceAll(
                             "_",
                             " "
                           )
                         )}
                       </span>
+
                     </td>
 
+
                     <td>
-                      ${money(t.amount)}
+                      ${money(
+                        t.amount
+                      )}
                     </td>
+
 
                     <td>
                       ${esc(
@@ -2015,12 +2534,14 @@ function renderCash() {
                       )}
                     </td>
 
+
                     <td>
                       ${esc(
                         t.to_member?.name ||
                         "—"
                       )}
                     </td>
+
 
                     <td>
                       ${esc(
@@ -2029,8 +2550,31 @@ function renderCash() {
                       )}
                     </td>
 
+
+                    <td>
+
+                      <button
+                        class="text-btn"
+                        type="button"
+                        onclick='editCashTransaction(${JSON.stringify(t.id)})'
+                      >
+                        Edit
+                      </button>
+
+
+                      <button
+                        class="text-btn negative"
+                        type="button"
+                        onclick='deleteCashTransaction(${JSON.stringify(t.id)})'
+                      >
+                        Delete
+                      </button>
+
+                    </td>
+
                   </tr>
-                  `
+
+                `
               )
               .join("")}
 
@@ -2046,15 +2590,17 @@ function renderCash() {
 
 
 /* ============================================================
-   28. CASH TRANSFER FORM
+   29. CASH TRANSFER FORM
 ============================================================ */
 
 function openTransferForm() {
 
-  if (state.members.length < 2) {
+  if (
+    state.members.length < 2
+  ) {
 
     toast(
-      "Add at least two members first."
+      "Add at least two active members first."
     );
 
     return;
@@ -2142,6 +2688,7 @@ function openTransferForm() {
 
         <button
           class="primary"
+          type="submit"
         >
           Transfer
         </button>
@@ -2159,7 +2706,7 @@ function openTransferForm() {
 
 
 /* ============================================================
-   29. SAVE CASH TRANSFER
+   30. SAVE CASH TRANSFER
 ============================================================ */
 
 async function saveTransfer(ev) {
@@ -2179,11 +2726,18 @@ async function saveTransfer(ev) {
     );
 
 
-  /*
-   * Validate amount.
-   */
+  if (from === to) {
+
+    toast(
+      "From and To must be different."
+    );
+
+    return;
+  }
+
+
   if (
-    !Number.isFinite(amount) ||
+    !amount ||
     amount <= 0
   ) {
 
@@ -2195,25 +2749,10 @@ async function saveTransfer(ev) {
   }
 
 
-  /*
-   * Sender and receiver cannot be the same.
-   */
-  if (from === to) {
-
-    toast(
-      "From and To must be different."
-    );
-
-    return;
-  }
-
-
-  /*
-   * Check available balance.
-   */
   const holder =
     cashByMember().find(
-      x => x.id === from
+      x =>
+        x.id === from
     );
 
 
@@ -2230,9 +2769,6 @@ async function saveTransfer(ev) {
   }
 
 
-  /*
-   * Insert transfer into ledger.
-   */
   await requireOk(
     await sb
       .from("cash_transactions")
@@ -2271,7 +2807,393 @@ async function saveTransfer(ev) {
 
 
 /* ============================================================
-   30. EXPENSES PAGE
+   31. EDIT CASH TRANSACTION
+============================================================ */
+
+function editCashTransaction(id) {
+
+  const t =
+    state.ledger.find(
+      x => x.id === id
+    );
+
+  if (!t)
+    return;
+
+
+  /*
+   * Historical cash adjustment is editable too.
+   */
+  openModal(`
+
+    <h3>
+      Edit Cash Transaction
+    </h3>
+
+
+    <form id="editCashForm">
+
+      <div class="form-grid">
+
+        <label>
+
+          Date
+
+          <input
+            id="ecDate"
+            type="date"
+            value="${esc(
+              t.transaction_date
+            )}"
+            required
+          >
+
+        </label>
+
+
+        <label>
+
+          Type
+
+          <select id="ecType">
+
+            <option
+              value="match_collection"
+              ${
+                t.type ===
+                "match_collection"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Match Collection
+            </option>
+
+            <option
+              value="expense_payment"
+              ${
+                t.type ===
+                "expense_payment"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Expense Payment
+            </option>
+
+            <option
+              value="cash_transfer"
+              ${
+                t.type ===
+                "cash_transfer"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Cash Transfer
+            </option>
+
+            <option
+              value="cash_adjustment"
+              ${
+                t.type ===
+                "cash_adjustment"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Cash Adjustment
+            </option>
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          Amount (QAR)
+
+          <input
+            id="ecAmount"
+            type="number"
+            min=".01"
+            step=".01"
+            value="${esc(
+              t.amount
+            )}"
+            required
+          >
+
+        </label>
+
+
+        <label>
+
+          From
+
+          <select id="ecFrom">
+
+            <option value="">
+              None
+            </option>
+
+            ${memberOptions(
+              t.from_member_id
+            )}
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          To
+
+          <select id="ecTo">
+
+            <option value="">
+              None
+            </option>
+
+            ${memberOptions(
+              t.to_member_id
+            )}
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          Description
+
+          <input
+            id="ecDescription"
+            value="${esc(
+              t.description || ""
+            )}"
+          >
+
+        </label>
+
+      </div>
+
+
+      <p class="small muted">
+        Editing a cash transaction changes the
+        ledger balance immediately.
+      </p>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          class="primary"
+          type="submit"
+        >
+          Save Changes
+        </button>
+
+      </div>
+
+    </form>
+
+  `);
+
+
+  $("editCashForm").onsubmit =
+    async ev => {
+
+      ev.preventDefault();
+
+
+      const from =
+        $("ecFrom").value ||
+        null;
+
+      const to =
+        $("ecTo").value ||
+        null;
+
+      const amount =
+        Number(
+          $("ecAmount").value
+        );
+
+
+      if (
+        !amount ||
+        amount <= 0
+      ) {
+
+        toast(
+          "Enter a valid amount."
+        );
+
+        return;
+      }
+
+
+      if (
+        from &&
+        to &&
+        from === to
+      ) {
+
+        toast(
+          "From and To must be different."
+        );
+
+        return;
+      }
+
+
+      if (
+        !from &&
+        !to
+      ) {
+
+        toast(
+          "Select at least From or To."
+        );
+
+        return;
+      }
+
+
+      try {
+
+        await requireOk(
+          await sb
+            .from(
+              "cash_transactions"
+            )
+            .update({
+
+              transaction_date:
+                $("ecDate").value,
+
+              type:
+                $("ecType").value,
+
+              amount,
+
+              from_member_id:
+                from,
+
+              to_member_id:
+                to,
+
+              description:
+                $("ecDescription")
+                  .value ||
+                null
+
+            })
+            .eq(
+              "id",
+              id
+            )
+        );
+
+
+        closeModal();
+
+        toast(
+          "Cash transaction updated"
+        );
+
+        await loadData();
+
+      } catch (err) {
+
+        console.error(err);
+
+      }
+
+    };
+}
+
+
+/* ============================================================
+   32. DELETE CASH TRANSACTION
+============================================================ */
+
+async function deleteCashTransaction(id) {
+
+  const t =
+    state.ledger.find(
+      x => x.id === id
+    );
+
+  if (!t)
+    return;
+
+
+  const ok =
+    confirm(
+      `Delete this cash transaction?\n\n` +
+      `${dateText(
+        t.transaction_date
+      )}\n` +
+      `${String(
+        t.type
+      ).replaceAll(
+        "_",
+        " "
+      )}\n` +
+      `${money(t.amount)}\n\n` +
+      `This will change the in-hand cash balance.`
+    );
+
+
+  if (!ok)
+    return;
+
+
+  try {
+
+    await requireOk(
+      await sb
+        .from(
+          "cash_transactions"
+        )
+        .delete()
+        .eq(
+          "id",
+          id
+        )
+    );
+
+
+    toast(
+      "Cash transaction deleted"
+    );
+
+    await loadData();
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+}
+
+
+/* ============================================================
+   33. EXPENSES
 ============================================================ */
 
 function renderExpenses() {
@@ -2315,6 +3237,7 @@ function renderExpenses() {
               <th>Amount</th>
               <th>Paid by</th>
               <th>Note</th>
+              <th>Actions</th>
             </tr>
 
           </thead>
@@ -2324,8 +3247,8 @@ function renderExpenses() {
 
             ${rows
               .map(
-                e =>
-                  `
+                e => `
+
                   <tr>
 
                     <td>
@@ -2333,6 +3256,7 @@ function renderExpenses() {
                         e.expense_date
                       )}
                     </td>
+
 
                     <td>
                       #${
@@ -2346,17 +3270,24 @@ function renderExpenses() {
                       }
                     </td>
 
+
                     <td>
+
                       <span class="pill">
                         ${esc(
                           e.category
                         )}
                       </span>
+
                     </td>
 
+
                     <td>
-                      ${money(e.amount)}
+                      ${money(
+                        e.amount
+                      )}
                     </td>
+
 
                     <td>
                       ${esc(
@@ -2365,6 +3296,7 @@ function renderExpenses() {
                       )}
                     </td>
 
+
                     <td>
                       ${esc(
                         e.description ||
@@ -2372,8 +3304,31 @@ function renderExpenses() {
                       )}
                     </td>
 
+
+                    <td>
+
+                      <button
+                        class="text-btn"
+                        type="button"
+                        onclick='editExpense(${JSON.stringify(e.id)})'
+                      >
+                        Edit
+                      </button>
+
+
+                      <button
+                        class="text-btn negative"
+                        type="button"
+                        onclick='deleteExpense(${JSON.stringify(e.id)})'
+                      >
+                        Delete
+                      </button>
+
+                    </td>
+
                   </tr>
-                  `
+
+                `
               )
               .join("")}
 
@@ -2389,7 +3344,7 @@ function renderExpenses() {
 
 
 /* ============================================================
-   31. ADD EXPENSE FORM
+   34. ADD EXPENSE
 ============================================================ */
 
 function openExpenseForm() {
@@ -2419,6 +3374,7 @@ function openExpenseForm() {
       <div class="form-grid">
 
         <label>
+
           Date
 
           <input
@@ -2427,10 +3383,12 @@ function openExpenseForm() {
             value="${today()}"
             required
           >
+
         </label>
 
 
         <label>
+
           Match
 
           <select id="efMatch">
@@ -2439,21 +3397,26 @@ function openExpenseForm() {
               state.matches
                 .slice()
                 .sort(
-                  (a,b) =>
+                  (a, b) =>
                     b.match_number -
                     a.match_number
                 )
                 .map(
-                  m =>
-                    `
-                    <option value="${esc(m.id)}">
-                      #${m.match_number}
+                  m => `
+                    <option
+                      value="${esc(
+                        m.id
+                      )}"
+                    >
+                      #${esc(
+                        m.match_number
+                      )}
                       —
                       ${dateText(
                         m.match_date
                       )}
                     </option>
-                    `
+                  `
                 )
                 .join("")
             }
@@ -2464,6 +3427,7 @@ function openExpenseForm() {
 
 
         <label>
+
           Category
 
           <select id="efCat">
@@ -2494,6 +3458,7 @@ function openExpenseForm() {
 
 
         <label>
+
           Amount (QAR)
 
           <input
@@ -2508,6 +3473,7 @@ function openExpenseForm() {
 
 
         <label>
+
           Paid by
 
           <select id="efPaid">
@@ -2542,7 +3508,10 @@ function openExpenseForm() {
         </button>
 
 
-        <button class="primary">
+        <button
+          class="primary"
+          type="submit"
+        >
           Save Expense
         </button>
 
@@ -2559,7 +3528,7 @@ function openExpenseForm() {
 
 
 /* ============================================================
-   32. SAVE EXPENSE
+   35. SAVE EXPENSE
 ============================================================ */
 
 async function saveExpense(ev) {
@@ -2585,25 +3554,6 @@ async function saveExpense(ev) {
   }
 
 
-  const amount =
-    Number(
-      $("efAmount").value
-    );
-
-
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
-
-    toast(
-      "Enter a valid expense amount."
-    );
-
-    return;
-  }
-
-
   const row = {
 
     expense_date:
@@ -2615,7 +3565,10 @@ async function saveExpense(ev) {
     category:
       $("efCat").value,
 
-    amount,
+    amount:
+      Number(
+        $("efAmount").value
+      ),
 
     paid_by:
       $("efPaid").value,
@@ -2627,58 +3580,544 @@ async function saveExpense(ev) {
   };
 
 
-  /*
-   * Save expense.
-   */
-  await requireOk(
-    await sb
-      .from("expenses")
-      .insert(row)
-  );
+  try {
+
+    const expense =
+      await requireOk(
+        await sb
+          .from("expenses")
+          .insert(row)
+          .select()
+          .single()
+      );
 
 
-  /*
-   * Record cash payment in ledger.
-   */
-  await requireOk(
-    await sb
-      .from("cash_transactions")
-      .insert({
+    /*
+     * Record cash payment.
+     */
+    await requireOk(
+      await sb
+        .from(
+          "cash_transactions"
+        )
+        .insert({
 
-        transaction_date:
-          row.expense_date,
+          transaction_date:
+            row.expense_date,
 
-        type:
-          "expense_payment",
+          type:
+            "expense_payment",
 
-        amount:
-          row.amount,
+          amount:
+            row.amount,
 
-        from_member_id:
-          row.paid_by,
+          from_member_id:
+            row.paid_by,
 
-        match_id:
-          row.match_id,
+          match_id:
+            row.match_id,
 
-        description:
-          `${row.category} — Match #${match.match_number}`
+          description:
+            `Expense #${expense.id}`
 
-      })
-  );
+        })
+    );
 
 
-  closeModal();
+    closeModal();
 
-  toast(
-    "Expense recorded"
-  );
+    toast(
+      "Expense recorded"
+    );
 
-  await loadData();
+    await loadData();
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
 }
 
 
 /* ============================================================
-   33. REPORTS
+   36. EDIT EXPENSE
+============================================================ */
+
+function editExpense(id) {
+
+  const e =
+    state.expenses.find(
+      x => x.id === id
+    );
+
+  if (!e)
+    return;
+
+
+  /*
+   * Find the associated cash payment.
+   *
+   * New expenses created by this version
+   * use "Expense #UUID" in the description.
+   *
+   * For older records we also try to find
+   * a matching transaction.
+   */
+  let cashTx =
+    state.ledger.find(
+      t =>
+        t.type ===
+          "expense_payment" &&
+        t.description ===
+          `Expense #${id}`
+    );
+
+
+  if (!cashTx) {
+
+    cashTx =
+      state.ledger.find(
+        t =>
+          t.type ===
+            "expense_payment" &&
+          t.match_id ===
+            e.match_id &&
+          t.from_member_id ===
+            e.paid_by &&
+          Number(t.amount) ===
+            Number(e.amount)
+      );
+
+  }
+
+
+  openModal(`
+
+    <h3>
+      Edit Expense
+    </h3>
+
+
+    <form id="editExpenseForm">
+
+      <div class="form-grid">
+
+        <label>
+
+          Date
+
+          <input
+            id="eeDate"
+            type="date"
+            value="${esc(
+              e.expense_date
+            )}"
+            required
+          >
+
+        </label>
+
+
+        <label>
+
+          Match
+
+          <select id="eeMatch">
+
+            ${
+              state.matches
+                .map(
+                  m => `
+                    <option
+                      value="${esc(
+                        m.id
+                      )}"
+                      ${
+                        m.id ===
+                        e.match_id
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      #${esc(
+                        m.match_number
+                      )}
+                      —
+                      ${dateText(
+                        m.match_date
+                      )}
+                    </option>
+                  `
+                )
+                .join("")
+            }
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          Category
+
+          <select id="eeCat">
+
+            ${[
+              "Ground",
+              "Water",
+              "Equipment",
+              "Food",
+              "Other"
+            ]
+              .map(
+                c => `
+                  <option
+                    ${
+                      e.category === c
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${c}
+                  </option>
+                `
+              )
+              .join("")}
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          Amount (QAR)
+
+          <input
+            id="eeAmount"
+            type="number"
+            min=".01"
+            step=".01"
+            value="${esc(
+              e.amount
+            )}"
+            required
+          >
+
+        </label>
+
+
+        <label>
+
+          Paid by
+
+          <select id="eePaid">
+
+            ${memberOptions(
+              e.paid_by,
+              true
+            )}
+
+          </select>
+
+        </label>
+
+
+        <label class="full-row">
+
+          Note
+
+          <input
+            id="eeNote"
+            value="${esc(
+              e.description ||
+              ""
+            )}"
+          >
+
+        </label>
+
+      </div>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          class="primary"
+          type="submit"
+        >
+          Save Changes
+        </button>
+
+      </div>
+
+    </form>
+
+  `);
+
+
+  $("editExpenseForm").onsubmit =
+    async ev => {
+
+      ev.preventDefault();
+
+
+      const updated = {
+
+        expense_date:
+          $("eeDate").value,
+
+        match_id:
+          $("eeMatch").value,
+
+        category:
+          $("eeCat").value,
+
+        amount:
+          Number(
+            $("eeAmount").value
+          ),
+
+        paid_by:
+          $("eePaid").value,
+
+        description:
+          $("eeNote").value ||
+          null
+
+      };
+
+
+      try {
+
+        await requireOk(
+          await sb
+            .from("expenses")
+            .update(updated)
+            .eq(
+              "id",
+              id
+            )
+        );
+
+
+        /*
+         * Synchronize associated cash payment.
+         */
+        if (cashTx) {
+
+          await requireOk(
+            await sb
+              .from(
+                "cash_transactions"
+              )
+              .update({
+
+                transaction_date:
+                  updated.expense_date,
+
+                amount:
+                  updated.amount,
+
+                from_member_id:
+                  updated.paid_by,
+
+                match_id:
+                  updated.match_id,
+
+                description:
+                  `Expense #${id}`
+
+              })
+              .eq(
+                "id",
+                cashTx.id
+              )
+          );
+
+        } else {
+
+          /*
+           * Old expense with no ledger record.
+           * Create one now.
+           */
+          await requireOk(
+            await sb
+              .from(
+                "cash_transactions"
+              )
+              .insert({
+
+                transaction_date:
+                  updated.expense_date,
+
+                type:
+                  "expense_payment",
+
+                amount:
+                  updated.amount,
+
+                from_member_id:
+                  updated.paid_by,
+
+                match_id:
+                  updated.match_id,
+
+                description:
+                  `Expense #${id}`
+
+              })
+          );
+
+        }
+
+
+        closeModal();
+
+        toast(
+          "Expense updated"
+        );
+
+        await loadData();
+
+      } catch (err) {
+
+        console.error(err);
+
+      }
+
+    };
+}
+
+
+/* ============================================================
+   37. DELETE EXPENSE
+============================================================ */
+
+async function deleteExpense(id) {
+
+  const e =
+    state.expenses.find(
+      x => x.id === id
+    );
+
+  if (!e)
+    return;
+
+
+  const ok =
+    confirm(
+      `Delete this expense?\n\n` +
+      `${e.category}\n` +
+      `${money(e.amount)}\n` +
+      `${dateText(
+        e.expense_date
+      )}\n\n` +
+      `The associated cash payment will also be removed.`
+    );
+
+
+  if (!ok)
+    return;
+
+
+  try {
+
+    /*
+     * Find associated cash transaction.
+     */
+    let cashTx =
+      state.ledger.find(
+        t =>
+          t.type ===
+            "expense_payment" &&
+          t.description ===
+            `Expense #${id}`
+      );
+
+
+    /*
+     * Compatibility with old transactions.
+     */
+    if (!cashTx) {
+
+      cashTx =
+        state.ledger.find(
+          t =>
+            t.type ===
+              "expense_payment" &&
+            t.match_id ===
+              e.match_id &&
+            t.from_member_id ===
+              e.paid_by &&
+            Number(t.amount) ===
+              Number(e.amount)
+        );
+
+    }
+
+
+    /*
+     * Delete cash transaction first.
+     */
+    if (cashTx) {
+
+      await requireOk(
+        await sb
+          .from(
+            "cash_transactions"
+          )
+          .delete()
+          .eq(
+            "id",
+            cashTx.id
+          )
+      );
+
+    }
+
+
+    /*
+     * Delete expense.
+     */
+    await requireOk(
+      await sb
+        .from("expenses")
+        .delete()
+        .eq(
+          "id",
+          id
+        )
+    );
+
+
+    toast(
+      "Expense deleted"
+    );
+
+    await loadData();
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+}
+
+
+/* ============================================================
+   38. REPORTS
 ============================================================ */
 
 function renderReports() {
@@ -2689,9 +4128,8 @@ function renderReports() {
 
   if ($("reportCards")) {
 
-    $("reportCards").innerHTML =
+    $("reportCards").innerHTML = `
 
-      `
       <div class="stat-card">
 
         <span>
@@ -2714,9 +4152,11 @@ function renderReports() {
         <strong>
           ${
             state.matches.reduce(
-              (s,m) =>
+              (s, m) =>
                 s +
-                Number(m.players),
+                Number(
+                  m.players
+                ),
               0
             )
           }
@@ -2732,7 +4172,9 @@ function renderReports() {
         </span>
 
         <strong>
-          ${money(t.collected)}
+          ${money(
+            t.collected
+          )}
         </strong>
 
       </div>
@@ -2745,11 +4187,14 @@ function renderReports() {
         </span>
 
         <strong>
-          ${money(t.net)}
+          ${money(
+            t.net
+          )}
         </strong>
 
       </div>
-      `;
+
+    `;
 
   }
 
@@ -2771,7 +4216,7 @@ function renderReports() {
               <th>Date</th>
               <th>Players</th>
               <th>Collected</th>
-              <th>Ground/Other</th>
+              <th>Expenses</th>
               <th>Balance</th>
             </tr>
 
@@ -2781,70 +4226,80 @@ function renderReports() {
           <tbody>
 
             ${state.matches
-              .map(m => {
+              .map(
+                m => {
 
-                const ex =
-                  state.expenses
-                    .filter(
-                      e =>
-                        e.match_id ===
-                        m.id
-                    )
-                    .reduce(
-                      (s,e) =>
-                        s +
-                        Number(e.amount),
-                      0
-                    );
-
-
-                const b =
-                  Number(
-                    m.total_collected
-                  ) - ex;
+                  const ex =
+                    state.expenses
+                      .filter(
+                        e =>
+                          e.match_id ===
+                          m.id
+                      )
+                      .reduce(
+                        (s, e) =>
+                          s +
+                          Number(
+                            e.amount
+                          ),
+                        0
+                      );
 
 
-                return `
-                  <tr>
+                  const b =
+                    Number(
+                      m.total_collected
+                    ) - ex;
 
-                    <td>
-                      #${m.match_number}
-                    </td>
 
-                    <td>
-                      ${dateText(
-                        m.match_date
-                      )}
-                    </td>
+                  return `
 
-                    <td>
-                      ${m.players}
-                    </td>
+                    <tr>
 
-                    <td>
-                      ${money(
-                        m.total_collected
-                      )}
-                    </td>
+                      <td>
+                        #${esc(
+                          m.match_number
+                        )}
+                      </td>
 
-                    <td>
-                      ${money(ex)}
-                    </td>
+                      <td>
+                        ${dateText(
+                          m.match_date
+                        )}
+                      </td>
 
-                    <td
-                      class="${
-                        b >= 0
-                          ? "positive"
-                          : "negative"
-                      }"
-                    >
-                      ${money(b)}
-                    </td>
+                      <td>
+                        ${esc(
+                          m.players
+                        )}
+                      </td>
 
-                  </tr>
-                `;
+                      <td>
+                        ${money(
+                          m.total_collected
+                        )}
+                      </td>
 
-              })
+                      <td>
+                        ${money(ex)}
+                      </td>
+
+                      <td
+                        class="${
+                          b >= 0
+                            ? "positive"
+                            : "negative"
+                        }"
+                      >
+                        ${money(b)}
+                      </td>
+
+                    </tr>
+
+                  `;
+
+                }
+              )
               .join("")}
 
           </tbody>
@@ -2859,7 +4314,7 @@ function renderReports() {
 
 
 /* ============================================================
-   34. PAGE NAVIGATION
+   39. PAGE NAVIGATION
 ============================================================ */
 
 function switchPage(
@@ -2867,14 +4322,14 @@ function switchPage(
   update = true
 ) {
 
-  state.page = page;
+  state.page =
+    page;
 
 
-  /*
-   * Hide every page.
-   */
   document
-    .querySelectorAll(".page")
+    .querySelectorAll(
+      ".page"
+    )
     .forEach(
       x =>
         x.classList.add(
@@ -2883,17 +4338,11 @@ function switchPage(
     );
 
 
-  /*
-   * Show selected page.
-   */
   $(`page-${page}`)
     ?.classList
     .remove("hidden");
 
 
-  /*
-   * Highlight navigation buttons.
-   */
   document
     .querySelectorAll(
       "[data-page]"
@@ -2902,14 +4351,12 @@ function switchPage(
       x =>
         x.classList.toggle(
           "active",
-          x.dataset.page === page
+          x.dataset.page ===
+          page
         )
     );
 
 
-  /*
-   * Update page title.
-   */
   if ($("pageTitle")) {
 
     $("pageTitle")
@@ -2922,9 +4369,6 @@ function switchPage(
   }
 
 
-  /*
-   * Scroll to top when navigation changes.
-   */
   if (update) {
 
     window.scrollTo({
@@ -2937,7 +4381,7 @@ function switchPage(
 
 
 /* ============================================================
-   35. MODAL FUNCTIONS
+   40. MODAL
 ============================================================ */
 
 function openModal(html) {
@@ -2946,13 +4390,13 @@ function openModal(html) {
     !$("modal") ||
     !$("modalBox")
   ) {
-
     return;
   }
 
 
   $("modalBox")
-    .innerHTML = html;
+    .innerHTML =
+    html;
 
 
   $("modal")
@@ -2967,7 +4411,6 @@ function closeModal() {
     !$("modal") ||
     !$("modalBox")
   ) {
-
     return;
   }
 
@@ -2978,12 +4421,13 @@ function closeModal() {
 
 
   $("modalBox")
-    .innerHTML = "";
+    .innerHTML =
+    "";
 }
 
 
 /* ============================================================
-   36. LOGIN
+   41. LOGIN
 ============================================================ */
 
 $("loginForm")
@@ -3028,22 +4472,17 @@ $("loginForm")
       }
 
 
-      /*
-       * Sign in using Supabase Auth.
-       */
       const { error } =
-        await sb.auth.signInWithPassword({
+        await sb.auth
+          .signInWithPassword({
 
-          email,
+            email,
 
-          password
+            password
 
-        });
+          });
 
 
-      /*
-       * Display login error.
-       */
       if (error) {
 
         console.error(
@@ -3062,7 +4501,7 @@ $("loginForm")
 
 
 /* ============================================================
-   37. LOGOUT
+   42. LOGOUT
 ============================================================ */
 
 $("logoutBtn")
@@ -3076,7 +4515,6 @@ $("logoutBtn")
 
       await sb.auth.signOut();
 
-
       toast(
         "Signed out"
       );
@@ -3086,13 +4524,9 @@ $("logoutBtn")
 
 
 /* ============================================================
-   38. BUTTON EVENT HANDLERS
+   43. BUTTON EVENTS
 ============================================================ */
 
-
-/*
- * Refresh data.
- */
 $("refreshBtn")
   ?.addEventListener(
     "click",
@@ -3100,9 +4534,6 @@ $("refreshBtn")
   );
 
 
-/*
- * Add Match.
- */
 $("addMatchBtn")
   ?.addEventListener(
     "click",
@@ -3110,9 +4541,13 @@ $("addMatchBtn")
   );
 
 
-/*
- * Transfer Cash.
- */
+$("addMemberBtn")
+  ?.addEventListener(
+    "click",
+    openMemberForm
+  );
+
+
 $("transferBtn")
   ?.addEventListener(
     "click",
@@ -3120,9 +4555,6 @@ $("transferBtn")
   );
 
 
-/*
- * Add Expense.
- */
 $("addExpenseBtn")
   ?.addEventListener(
     "click",
@@ -3130,9 +4562,6 @@ $("addExpenseBtn")
   );
 
 
-/*
- * Export CSV.
- */
 $("exportBtn")
   ?.addEventListener(
     "click",
@@ -3140,26 +4569,8 @@ $("exportBtn")
   );
 
 
-/*
- * Add Member.
- *
- * IMPORTANT:
- * This works if your index.html contains:
- *
- * <button id="addMemberBtn">+ Add Member</button>
- *
- * If the button is not yet in index.html,
- * nothing breaks.
- */
-$("addMemberBtn")
-  ?.addEventListener(
-    "click",
-    openAddMemberForm
-  );
-
-
 /* ============================================================
-   39. SEARCH / FILTER EVENTS
+   44. SEARCH EVENTS
 ============================================================ */
 
 $("matchSearch")
@@ -3184,7 +4595,7 @@ $("expenseSearch")
 
 
 /* ============================================================
-   40. NAVIGATION CLICK HANDLER
+   45. NAVIGATION EVENTS
 ============================================================ */
 
 document.addEventListener(
@@ -3210,7 +4621,7 @@ document.addEventListener(
 
 
 /* ============================================================
-   41. CLOSE MODAL WHEN BACKDROP IS CLICKED
+   46. CLOSE MODAL ON BACKDROP
 ============================================================ */
 
 $("modal")
@@ -3233,15 +4644,36 @@ $("modal")
 
 
 /* ============================================================
-   42. EXPORT FINANCE DATA TO CSV
+   47. ESCAPE KEY CLOSES MODAL
+============================================================ */
+
+document.addEventListener(
+  "keydown",
+  e => {
+
+    if (
+      e.key === "Escape" &&
+      !$("modal")
+        ?.classList
+        .contains("hidden")
+    ) {
+
+      closeModal();
+
+    }
+
+  }
+);
+
+
+/* ============================================================
+   48. CSV EXPORT
 ============================================================ */
 
 function exportCSV() {
 
-  /*
-   * CSV header.
-   */
   const rows = [
+
     [
       "Match",
       "Date",
@@ -3251,12 +4683,10 @@ function exportCSV() {
       "Balance",
       "Notes"
     ]
+
   ];
 
 
-  /*
-   * Add every match.
-   */
   state.matches.forEach(
     m => {
 
@@ -3268,9 +4698,11 @@ function exportCSV() {
               m.id
           )
           .reduce(
-            (s,e) =>
+            (s, e) =>
               s +
-              Number(e.amount),
+              Number(
+                e.amount
+              ),
             0
           );
 
@@ -3297,9 +4729,6 @@ function exportCSV() {
   );
 
 
-  /*
-   * Convert rows into CSV text.
-   */
   const csv =
     rows
       .map(
@@ -3318,9 +4747,6 @@ function exportCSV() {
       .join("\n");
 
 
-  /*
-   * Create downloadable file.
-   */
   const blob =
     new Blob(
       [csv],
@@ -3343,14 +4769,19 @@ function exportCSV() {
     );
 
 
-  a.href = url;
+  a.href =
+    url;
+
 
   a.download =
     "qatar-football-finance.csv";
 
 
+  document.body.appendChild(a);
+
   a.click();
 
+  a.remove();
 
   URL.revokeObjectURL(
     url
@@ -3359,12 +4790,7 @@ function exportCSV() {
 
 
 /* ============================================================
-   43. START APPLICATION
+   49. START APPLICATION
 ============================================================ */
 
-/*
- * Everything above is defined first.
- *
- * init() starts the application.
- */
 init();
