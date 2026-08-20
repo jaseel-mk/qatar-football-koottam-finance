@@ -8,7 +8,7 @@
 const SUPABASE_URL = "https://soakyzawpmsoxqodskgr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_knMPrkJfZ003rPvb7bRgRA_QJC8DWGJ";
 
-const RESET_PAGE_URL = "https://jaseel-mk.github.io/reset.html";
+const RESET_PAGE_URL = "redirectTo: "https://jaseel-mk.github.io/qatar-football-koottam-finance/reset.html"";
 
 const configured =
   !SUPABASE_URL.startsWith("YOUR_") &&
