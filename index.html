@@ -2,120 +2,849 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b2419">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  >
+
+  <!-- Qatar maroon theme -->
+  <meta name="theme-color" content="#8A1538">
+
   <title>Qatar Football Koottam — Finance</title>
+
+  <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Main stylesheet -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Supabase JavaScript library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
+
+  <!-- =========================================================
+       GLOBAL TOAST MESSAGE
+       app.js uses this for success/error notifications.
+       ========================================================= -->
   <div id="toast" class="toast"></div>
 
+
+  <!-- =========================================================
+       LOGIN / AUTHENTICATION
+       ========================================================= -->
   <section id="authView" class="auth-shell">
+
     <div class="auth-card">
+
+      <!-- Football logo -->
       <div class="brand-mark">⚽</div>
-      <p class="eyebrow">QATAR FOOTBALL KOOTTAM</p>
-      <h1>Football Finance</h1>
-      <p class="muted">Shared match collections, expenses and cash tracking.</p>
+
+      <p class="eyebrow">
+        QATAR FOOTBALL KOOTTAM
+      </p>
+
+      <h1>
+        Football Finance
+      </h1>
+
+      <p class="muted">
+        Shared match collections, expenses and
+        in-hand cash tracking.
+      </p>
+
+
+      <!-- Login form -->
       <form id="loginForm">
-        <label>Email<input id="loginEmail" type="email" required placeholder="you@example.com"></label>
-        <label>Password<input id="loginPassword" type="password" required placeholder="••••••••"></label>
-        <button class="primary full" type="submit">Sign in</button>
+
+        <label>
+          Email
+
+          <input
+            id="loginEmail"
+            type="email"
+            autocomplete="email"
+            required
+            placeholder="you@example.com"
+          >
+        </label>
+
+
+        <label>
+          Password
+
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+            placeholder="••••••••"
+          >
+        </label>
+
+
+        <button
+          class="primary full"
+          type="submit"
+        >
+          Sign in
+        </button>
+
       </form>
-      <p class="small muted">Create your users in Supabase Authentication → Users.</p>
-      <p id="configWarning" class="warning hidden">Add your Supabase URL and publishable/anon key in <code>app.js</code> first.</p>
+
+
+      <!--
+        app.js adds the "Forgot password?"
+        button below the login form.
+      -->
+
+
+      <p class="small muted">
+        Create your users in
+        Supabase Authentication → Users.
+      </p>
+
+
+      <!-- Configuration warning -->
+      <p
+        id="configWarning"
+        class="warning hidden"
+      >
+        Add your Supabase URL and publishable/anon
+        key in <code>app.js</code> first.
+      </p>
+
     </div>
+
   </section>
 
+
+
+  <!-- =========================================================
+       MAIN APPLICATION
+       ========================================================= -->
+
   <div id="appView" class="app hidden">
+
+
+    <!-- =======================================================
+         DESKTOP SIDEBAR
+         ======================================================= -->
+
     <aside class="sidebar">
-      <div class="side-brand"><span>⚽</span><div><strong>Qatar Football</strong><small>Koottam Finance</small></div></div>
+
+      <!-- Brand -->
+      <div class="side-brand">
+
+        <span class="side-brand-ball">
+          ⚽
+        </span>
+
+        <div>
+          <strong>
+            Qatar Football
+          </strong>
+
+          <small>
+            Koottam Finance
+          </small>
+        </div>
+
+      </div>
+
+
+      <!-- Main navigation -->
       <nav>
-        <button data-page="dashboard" class="nav-item active">⌂ <span>Dashboard</span></button>
-        <button data-page="matches" class="nav-item">⚽ <span>Matches</span></button>
-        <button data-page="cash" class="nav-item">💰 <span>Cash</span></button>
-        <button data-page="expenses" class="nav-item">🧾 <span>Expenses</span></button>
-        <button data-page="reports" class="nav-item">▥ <span>Reports</span></button>
+
+        <button
+          data-page="dashboard"
+          class="nav-item active"
+        >
+          ⌂
+          <span>Dashboard</span>
+        </button>
+
+
+        <button
+          data-page="matches"
+          class="nav-item"
+        >
+          ⚽
+          <span>Matches</span>
+        </button>
+
+
+        <button
+          data-page="cash"
+          class="nav-item"
+        >
+          💰
+          <span>In-Hand Cash</span>
+        </button>
+
+
+        <button
+          data-page="expenses"
+          class="nav-item"
+        >
+          🧾
+          <span>Expenses</span>
+        </button>
+
+
+        <button
+          data-page="reports"
+          class="nav-item"
+        >
+          ▥
+          <span>Reports</span>
+        </button>
+
       </nav>
-      <button id="logoutBtn" class="logout">↪ Sign out</button>
+
+
+      <!-- Sign out -->
+      <button
+        id="logoutBtn"
+        class="logout"
+      >
+        ↪ Sign out
+      </button>
+
     </aside>
 
+
+
+    <!-- =======================================================
+         MAIN CONTENT
+         ======================================================= -->
+
     <main class="main">
+
+
+      <!-- =====================================================
+           TOP BAR
+           ===================================================== -->
+
       <header class="topbar">
+
         <div>
-          <p class="eyebrow">QATAR FOOTBALL KOOTTAM</p>
-          <h2 id="pageTitle">Dashboard</h2>
+
+          <p class="eyebrow">
+            QATAR FOOTBALL KOOTTAM
+          </p>
+
+          <h2 id="pageTitle">
+            Dashboard
+          </h2>
+
         </div>
+
+
         <div class="top-actions">
-          <span id="userEmail" class="user-pill"></span>
-          <button id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
+
+          <!-- Logged-in email -->
+          <span
+            id="userEmail"
+            class="user-pill"
+          ></span>
+
+
+          <!-- Refresh -->
+          <button
+            id="refreshBtn"
+            class="icon-btn"
+            title="Refresh data"
+            type="button"
+          >
+            ↻
+          </button>
+
         </div>
+
       </header>
 
-      <section id="page-dashboard" class="page">
+
+
+      <!-- =====================================================
+           DASHBOARD
+           ===================================================== -->
+
+      <section
+        id="page-dashboard"
+        class="page"
+      >
+
+
+        <!-- Main cash hero -->
         <div class="hero-card">
+
           <div>
-            <span class="label">TOTAL CASH</span>
-            <div id="totalCash" class="hero-number">QAR 0</div>
-            <span id="cashStatus" class="status ok">● Balanced</span>
+
+            <span class="label">
+              TOTAL IN-HAND CASH
+            </span>
+
+            <div
+              id="totalCash"
+              class="hero-number"
+            >
+              QAR 0
+            </div>
+
+            <span
+              id="cashStatus"
+              class="status ok"
+            >
+              ● Balanced
+            </span>
+
           </div>
-          <div class="hero-ball">⚽</div>
+
+
+          <div class="hero-ball">
+            ⚽
+          </div>
+
         </div>
 
+
+
+        <!-- Financial statistics -->
         <div class="stats-grid">
-          <div class="stat-card"><span>Total collected</span><strong id="totalCollected">QAR 0</strong></div>
-          <div class="stat-card"><span>Total expenses</span><strong id="totalExpenses">QAR 0</strong></div>
-          <div class="stat-card"><span>Net balance</span><strong id="netBalance">QAR 0</strong></div>
-          <div class="stat-card"><span>Matches</span><strong id="totalMatches">0</strong></div>
+
+          <div class="stat-card">
+            <span>Total collected</span>
+            <strong id="totalCollected">
+              QAR 0
+            </strong>
+          </div>
+
+
+          <div class="stat-card">
+            <span>Total expenses</span>
+            <strong id="totalExpenses">
+              QAR 0
+            </strong>
+          </div>
+
+
+          <div class="stat-card">
+            <span>Net balance</span>
+            <strong id="netBalance">
+              QAR 0
+            </strong>
+          </div>
+
+
+          <div class="stat-card">
+            <span>Matches</span>
+            <strong id="totalMatches">
+              0
+            </strong>
+          </div>
+
         </div>
 
-        <div class="section-head"><h3>Cash by person</h3><button class="text-btn" data-page="cash">View all →</button></div>
-        <div id="cashCards" class="cash-grid"></div>
 
-        <div class="section-head"><h3>Recent matches</h3><button class="text-btn" data-page="matches">View all →</button></div>
-        <div id="recentMatches" class="match-list"></div>
+
+        <!-- In-hand cash summary -->
+        <div class="section-head">
+
+          <div>
+            <h3>
+              In-Hand Cash
+            </h3>
+
+            <p class="muted">
+              Cash currently held by each member.
+            </p>
+          </div>
+
+
+          <button
+            class="text-btn"
+            data-page="cash"
+            type="button"
+          >
+            View all →
+          </button>
+
+        </div>
+
+
+        <!--
+          app.js will populate this area dynamically.
+
+          Example:
+
+          Jaseel      QAR 60
+          Nashid      QAR 18
+          Ahmed       QAR 25
+
+          New members are automatically displayed.
+        -->
+        <div
+          id="cashCards"
+          class="cash-grid"
+        ></div>
+
+
+
+        <!-- Recent matches -->
+        <div class="section-head">
+
+          <h3>
+            Recent matches
+          </h3>
+
+          <button
+            class="text-btn"
+            data-page="matches"
+            type="button"
+          >
+            View all →
+          </button>
+
+        </div>
+
+
+        <div
+          id="recentMatches"
+          class="match-list"
+        ></div>
+
       </section>
 
-      <section id="page-matches" class="page hidden">
-        <div class="section-head"><div><h3>Matches</h3><p class="muted">Collections and match-level balances.</p></div><button id="addMatchBtn" class="primary">+ Add Match</button></div>
-        <div class="toolbar"><input id="matchSearch" placeholder="Search match or date..."><select id="matchFilter"><option value="all">All matches</option><option value="positive">Positive balance</option><option value="negative">Negative balance</option></select></div>
-        <div id="matchesTable" class="table-wrap"></div>
+
+
+      <!-- =====================================================
+           MATCHES PAGE
+           ===================================================== -->
+
+      <section
+        id="page-matches"
+        class="page hidden"
+      >
+
+        <div class="section-head">
+
+          <div>
+
+            <h3>
+              Matches
+            </h3>
+
+            <p class="muted">
+              Collections and match-level balances.
+            </p>
+
+          </div>
+
+
+          <button
+            id="addMatchBtn"
+            class="primary"
+            type="button"
+          >
+            + Add Match
+          </button>
+
+        </div>
+
+
+        <div class="toolbar">
+
+          <input
+            id="matchSearch"
+            placeholder="Search match or date..."
+          >
+
+
+          <select id="matchFilter">
+
+            <option value="all">
+              All matches
+            </option>
+
+            <option value="positive">
+              Positive balance
+            </option>
+
+            <option value="negative">
+              Negative balance
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div
+          id="matchesTable"
+          class="table-wrap"
+        ></div>
+
       </section>
 
-      <section id="page-cash" class="page hidden">
-        <div class="section-head"><div><h3>Cash</h3><p class="muted">Every cash change is recorded in the ledger.</p></div><button id="transferBtn" class="primary">⇄ Transfer Cash</button></div>
-        <div class="hero-card compact"><div><span class="label">CURRENT PHYSICAL CASH</span><div id="cashTotal2" class="hero-number">QAR 0</div></div><div>💵</div></div>
-        <div id="cashPeople" class="cash-grid"></div>
-        <div class="section-head"><h3>Cash ledger</h3></div>
-        <div id="cashLedger" class="table-wrap"></div>
+
+
+      <!-- =====================================================
+           IN-HAND CASH PAGE
+           ===================================================== -->
+
+      <section
+        id="page-cash"
+        class="page hidden"
+      >
+
+
+        <!-- Page header -->
+        <div class="section-head">
+
+          <div>
+
+            <h3>
+              In-Hand Cash
+            </h3>
+
+            <p class="muted">
+              Track how much physical cash is held
+              by each member.
+            </p>
+
+          </div>
+
+
+          <div class="cash-page-actions">
+
+            <!--
+              NEW:
+              Add Member button.
+
+              app.js will attach the click event
+              and create the new member in Supabase.
+            -->
+            <button
+              id="addMemberBtn"
+              class="secondary"
+              type="button"
+            >
+              + Add Member
+            </button>
+
+
+            <!-- Cash transfer -->
+            <button
+              id="transferBtn"
+              class="primary"
+              type="button"
+            >
+              ⇄ Transfer Cash
+            </button>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- Total physical cash -->
+        <div class="hero-card compact">
+
+          <div>
+
+            <span class="label">
+              CURRENT TOTAL PHYSICAL CASH
+            </span>
+
+            <div
+              id="cashTotal2"
+              class="hero-number"
+            >
+              QAR 0
+            </div>
+
+          </div>
+
+
+          <div class="cash-hero-icon">
+            💵
+          </div>
+
+        </div>
+
+
+
+        <!--
+          Dynamic member cash cards.
+
+          Example:
+
+          ┌─────────────────────────┐
+          │ Jaseel                  │
+          │ QAR 60                  │
+          └─────────────────────────┘
+
+          ┌─────────────────────────┐
+          │ Nashid                  │
+          │ QAR 18                  │
+          └─────────────────────────┘
+
+          ┌─────────────────────────┐
+          │ New Member              │
+          │ QAR 25                  │
+          └─────────────────────────┘
+        -->
+
+        <div
+          id="cashPeople"
+          class="cash-grid"
+        ></div>
+
+
+
+        <!-- Cash ledger -->
+        <div class="section-head">
+
+          <div>
+
+            <h3>
+              Cash Ledger
+            </h3>
+
+            <p class="muted">
+              Every collection, expense and transfer
+              is recorded here.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="cashLedger"
+          class="table-wrap"
+        ></div>
+
       </section>
 
-      <section id="page-expenses" class="page hidden">
-        <div class="section-head"><div><h3>Expenses</h3><p class="muted">Ground, water, equipment and other costs.</p></div><button id="addExpenseBtn" class="primary">+ Add Expense</button></div>
-        <div class="toolbar"><input id="expenseSearch" placeholder="Search category, member or note..."></div>
-        <div id="expensesTable" class="table-wrap"></div>
+
+
+      <!-- =====================================================
+           EXPENSES PAGE
+           ===================================================== -->
+
+      <section
+        id="page-expenses"
+        class="page hidden"
+      >
+
+        <div class="section-head">
+
+          <div>
+
+            <h3>
+              Expenses
+            </h3>
+
+            <p class="muted">
+              Ground, water, equipment and other costs.
+            </p>
+
+          </div>
+
+
+          <button
+            id="addExpenseBtn"
+            class="primary"
+            type="button"
+          >
+            + Add Expense
+          </button>
+
+        </div>
+
+
+        <div class="toolbar">
+
+          <input
+            id="expenseSearch"
+            placeholder="Search category, member or note..."
+          >
+
+        </div>
+
+
+        <div
+          id="expensesTable"
+          class="table-wrap"
+        ></div>
+
       </section>
 
-      <section id="page-reports" class="page hidden">
-        <div class="section-head"><div><h3>Reports</h3><p class="muted">Financial overview from the live database.</p></div><button id="exportBtn" class="secondary">Export CSV</button></div>
-        <div id="reportCards" class="stats-grid"></div>
-        <div class="report-box"><h3>Monthly / match summary</h3><div id="reportTable" class="table-wrap"></div></div>
+
+
+      <!-- =====================================================
+           REPORTS PAGE
+           ===================================================== -->
+
+      <section
+        id="page-reports"
+        class="page hidden"
+      >
+
+        <div class="section-head">
+
+          <div>
+
+            <h3>
+              Reports
+            </h3>
+
+            <p class="muted">
+              Financial overview from the live database.
+            </p>
+
+          </div>
+
+
+          <button
+            id="exportBtn"
+            class="secondary"
+            type="button"
+          >
+            Export CSV
+          </button>
+
+        </div>
+
+
+        <!-- Report summary cards -->
+        <div
+          id="reportCards"
+          class="stats-grid"
+        ></div>
+
+
+        <!-- Report table -->
+        <div class="report-box">
+
+          <h3>
+            Monthly / Match Summary
+          </h3>
+
+          <div
+            id="reportTable"
+            class="table-wrap"
+          ></div>
+
+        </div>
+
       </section>
+
     </main>
 
+
+
+    <!-- =======================================================
+         MOBILE BOTTOM NAVIGATION
+         ======================================================= -->
+
     <nav class="bottom-nav">
-      <button data-page="dashboard" class="active">⌂<span>Home</span></button>
-      <button data-page="matches">⚽<span>Matches</span></button>
-      <button data-page="cash">💰<span>Cash</span></button>
-      <button data-page="expenses">🧾<span>Expenses</span></button>
-      <button data-page="reports">▥<span>Reports</span></button>
+
+      <button
+        data-page="dashboard"
+        class="active"
+        type="button"
+      >
+        ⌂
+        <span>Home</span>
+      </button>
+
+
+      <button
+        data-page="matches"
+        type="button"
+      >
+        ⚽
+        <span>Matches</span>
+      </button>
+
+
+      <button
+        data-page="cash"
+        type="button"
+      >
+        💰
+        <span>Cash</span>
+      </button>
+
+
+      <button
+        data-page="expenses"
+        type="button"
+      >
+        🧾
+        <span>Expenses</span>
+      </button>
+
+
+      <button
+        data-page="reports"
+        type="button"
+      >
+        ▥
+        <span>Reports</span>
+      </button>
+
     </nav>
+
   </div>
 
-  <div id="modal" class="modal hidden"><div class="modal-backdrop"></div><div id="modalBox" class="modal-box"></div></div>
+
+
+  <!-- =========================================================
+       GLOBAL MODAL
+
+       app.js uses this for:
+       - Add Match
+       - Add Expense
+       - Transfer Cash
+       - Add Member
+       - View Match
+       ========================================================= -->
+
+  <div
+    id="modal"
+    class="modal hidden"
+  >
+
+    <div class="modal-backdrop"></div>
+
+    <div
+      id="modalBox"
+      class="modal-box"
+    ></div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       APPLICATION JAVASCRIPT
+       ========================================================= -->
+
   <script src="app.js"></script>
+
 </body>
 </html>

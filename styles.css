@@ -1,4 +1,1358 @@
-:root{--green:#0b2419;--green2:#123b29;--lime:#b7ef55;--bg:#f4f7f3;--card:#fff;--text:#102018;--muted:#708078;--line:#e3eae5;--danger:#c94242;--shadow:0 12px 35px rgba(12,38,25,.08)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:0}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:12px}.eyebrow{font-size:11px;letter-spacing:.14em;font-weight:800;color:#789087;margin:0 0 7px}.auth-shell{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 0,#234e37,transparent 35%),var(--green)}.auth-card{width:min(430px,100%);background:#fff;border-radius:28px;padding:34px;box-shadow:0 30px 70px #0005}.brand-mark{width:54px;height:54px;border-radius:18px;background:var(--green);display:grid;place-items:center;color:#fff;font-size:27px;margin-bottom:22px}.auth-card h1{margin:0;font-size:32px}.auth-card form{display:grid;gap:15px;margin-top:26px}.auth-card label,.modal-box label{font-size:12px;font-weight:700;color:#54645c;display:grid;gap:7px}.auth-card input,.modal-box input,.modal-box select,.modal-box textarea,.toolbar input,.toolbar select{width:100%;border:1px solid var(--line);background:#fbfdfb;border-radius:12px;padding:12px 13px;outline:none}.auth-card input:focus,.modal-box input:focus,.modal-box select:focus,.modal-box textarea:focus{border-color:#83b95a}.primary{background:var(--green);color:white;border-radius:12px;padding:12px 16px;font-weight:800}.primary:hover{background:var(--green2)}.secondary{background:#eaf2eb;color:var(--green);border-radius:12px;padding:12px 16px;font-weight:800}.full{width:100%}.warning{background:#fff5d8;padding:10px;border-radius:10px;font-size:12px}.app{min-height:100vh}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:var(--green);color:#fff;padding:26px 16px;display:flex;flex-direction:column;z-index:10}.side-brand{display:flex;gap:12px;align-items:center;padding:5px 10px 30px}.side-brand span{font-size:27px}.side-brand strong,.side-brand small{display:block}.side-brand small{opacity:.55;margin-top:4px;font-size:11px}.sidebar nav{display:grid;gap:6px}.nav-item,.logout{background:transparent;color:#c8d7ce;text-align:left;padding:13px;border-radius:11px;font-weight:700}.nav-item.active,.nav-item:hover{background:#ffffff12;color:#fff}.logout{margin-top:auto}.main{margin-left:245px;padding:30px 36px 50px;max-width:1450px}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.topbar h2{margin:0;font-size:29px}.top-actions{display:flex;gap:9px;align-items:center}.user-pill{font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);padding:9px 12px;border-radius:99px}.icon-btn{width:38px;height:38px;border-radius:12px;background:#fff;border:1px solid var(--line)}.hero-card{background:linear-gradient(135deg,var(--green),#1a4d32);color:#fff;border-radius:24px;padding:26px 28px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow);margin-bottom:18px}.hero-card.compact{margin-bottom:20px}.label{font-size:11px;letter-spacing:.13em;opacity:.65;font-weight:800}.hero-number{font-size:38px;font-weight:800;margin:7px 0}.hero-ball{font-size:70px;opacity:.25}.status{font-size:12px}.status.ok{color:var(--lime)}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:25px}.stat-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:19px;box-shadow:0 5px 20px #10201806}.stat-card span{font-size:12px;color:var(--muted)}.stat-card strong{display:block;font-size:22px;margin-top:8px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:25px 0 13px}.section-head h3{margin:0;font-size:18px}.section-head p{margin:5px 0 0;font-size:12px}.text-btn{background:none;color:#4d715b;font-weight:800;font-size:12px}.cash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.cash-card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:18px}.cash-card .person{font-weight:800}.cash-card .amount{font-size:25px;font-weight:800;margin-top:8px}.match-list{display:grid;gap:10px}.match-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px;display:grid;grid-template-columns:1fr auto;gap:10px}.match-card strong{font-size:15px}.match-meta{font-size:12px;color:var(--muted);margin-top:5px}.match-balance{font-weight:800;align-self:center}.positive{color:#19864a}.negative{color:var(--danger)}.toolbar{display:flex;gap:10px;margin:14px 0}.toolbar input{max-width:420px}.table-wrap{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:auto}.data-table{width:100%;border-collapse:collapse;min-width:720px}.data-table th,.data-table td{text-align:left;padding:14px 15px;border-bottom:1px solid var(--line);font-size:12px}.data-table th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#7a8982;background:#fafcf9}.data-table tr:last-child td{border-bottom:0}.pill{display:inline-block;padding:5px 8px;border-radius:99px;background:#edf4ed;font-size:10px;font-weight:800}.report-box{margin-top:20px}.bottom-nav{display:none}.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center}.modal-backdrop{position:absolute;inset:0;background:#06140dcc}.modal-box{position:relative;width:min(560px,calc(100% - 28px));max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 30px 80px #0006}.modal-box h3{margin:0 0 18px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.form-grid .full-row{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.expense-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;background:#f6f9f6;padding:10px;border-radius:12px;margin-top:8px}.danger-btn{background:#ffe9e9;color:var(--danger);border-radius:9px;padding:9px}.add-row{background:#eef5ef;color:var(--green);padding:9px;border-radius:9px;font-weight:800;margin-top:8px}.empty{padding:30px;text-align:center;color:var(--muted);font-size:13px}.toast{position:fixed;right:18px;bottom:18px;z-index:100;background:var(--green);color:#fff;padding:12px 15px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;font-size:12px}.toast.show{opacity:1;transform:translateY(0)}code{background:#eef2ee;padding:2px 4px;border-radius:4px}
-@media(max-width:850px){.sidebar{display:none}.main{margin:0;padding:22px 15px 92px}.bottom-nav{display:grid;position:fixed;bottom:0;left:0;right:0;height:68px;background:#fff;border-top:1px solid var(--line);z-index:20;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}.bottom-nav button{background:none;color:#87948e;font-size:18px;display:grid;place-items:center;padding:7px 0}.bottom-nav span{font-size:9px;font-weight:700}.bottom-nav button.active{color:var(--green)}.topbar{margin-bottom:18px}.topbar h2{font-size:23px}.user-pill{display:none}.stats-grid{grid-template-columns:1fr 1fr}.cash-grid{grid-template-columns:1fr 1fr}.hero-number{font-size:31px}.hero-ball{font-size:50px}.form-grid{grid-template-columns:1fr}.form-grid .full-row{grid-column:auto}.section-head{align-items:flex-start}.section-head .primary{white-space:nowrap}.toolbar{flex-direction:column}.toolbar input{max-width:none}}
-@media(max-width:450px){.stats-grid,.cash-grid{grid-template-columns:1fr}.hero-card{padding:22px}.match-card{padding:14px}}
+/* =========================================================
+   QATAR FOOTBALL KOOTTAM — FINANCE
+   Main Stylesheet
+   Theme: Qatar Maroon + White
+   ========================================================= */
+
+
+/* =========================================================
+   1. THEME VARIABLES
+   ========================================================= */
+
+:root {
+  /* Qatar-inspired primary colors */
+  --maroon: #8a1538;
+  --maroon-dark: #6f102d;
+  --maroon-deep: #4a0a1f;
+  --maroon-soft: #f8e8ee;
+
+  /* General colors */
+  --white: #ffffff;
+  --bg: #f7f5f6;
+  --card: #ffffff;
+
+  --text: #21151a;
+  --muted: #766c70;
+  --line: #e7dfe3;
+
+  /* Status colors */
+  --success: #19864a;
+  --success-soft: #eaf6ef;
+
+  --danger: #c94242;
+  --danger-soft: #ffe9e9;
+
+  --warning: #9a6b00;
+  --warning-soft: #fff5d8;
+
+  /* Shadows */
+  --shadow: 0 12px 35px rgba(80, 15, 38, 0.08);
+  --shadow-strong: 0 30px 70px rgba(40, 5, 18, 0.18);
+
+  /* Border radius */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+}
+
+
+/* =========================================================
+   2. GLOBAL RESET
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+input,
+select,
+textarea {
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a39a9e;
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+/* =========================================================
+   3. GENERAL TEXT UTILITIES
+   ========================================================= */
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+
+  color: #92737e;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+
+/* =========================================================
+   4. LOGIN / AUTHENTICATION SCREEN
+   ========================================================= */
+
+.auth-shell {
+  min-height: 100vh;
+
+  display: grid;
+  place-items: center;
+
+  padding: 24px;
+
+  background:
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(255, 255, 255, 0.13),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 100%,
+      rgba(255, 255, 255, 0.08),
+      transparent 35%
+    ),
+    var(--maroon-deep);
+}
+
+.auth-card {
+  width: min(430px, 100%);
+
+  padding: 34px;
+
+  background: var(--white);
+
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-2xl);
+
+  box-shadow: var(--shadow-strong);
+}
+
+.brand-mark {
+  width: 54px;
+  height: 54px;
+
+  margin-bottom: 22px;
+
+  display: grid;
+  place-items: center;
+
+  background: var(--maroon);
+  color: var(--white);
+
+  border-radius: 18px;
+
+  font-size: 27px;
+
+  box-shadow:
+    0 10px 25px rgba(138, 21, 56, 0.22);
+}
+
+.auth-card h1 {
+  margin: 0;
+
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+.auth-card form {
+  display: grid;
+  gap: 15px;
+
+  margin-top: 26px;
+}
+
+.auth-card label,
+.modal-box label {
+  display: grid;
+  gap: 7px;
+
+  color: #5d5156;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-card input {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  background: #fdfbfc;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  outline: none;
+
+  transition: 0.2s ease;
+}
+
+.auth-card input:focus {
+  border-color: var(--maroon);
+
+  box-shadow:
+    0 0 0 3px rgba(138, 21, 56, 0.08);
+}
+
+
+/* =========================================================
+   5. BUTTONS
+   ========================================================= */
+
+.primary {
+  padding: 12px 16px;
+
+  background: var(--maroon);
+  color: var(--white);
+
+  border-radius: 12px;
+
+  font-weight: 800;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.primary:hover {
+  background: var(--maroon-dark);
+
+  box-shadow:
+    0 8px 20px rgba(138, 21, 56, 0.18);
+}
+
+.primary:active {
+  transform: translateY(1px);
+}
+
+.secondary {
+  padding: 12px 16px;
+
+  background: var(--maroon-soft);
+  color: var(--maroon-dark);
+
+  border-radius: 12px;
+
+  font-weight: 800;
+
+  transition: 0.2s ease;
+}
+
+.secondary:hover {
+  background: #f1dce4;
+}
+
+.full {
+  width: 100%;
+}
+
+.text-btn {
+  padding: 4px;
+
+  background: none;
+  color: var(--maroon);
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.text-btn:hover {
+  color: var(--maroon-dark);
+  text-decoration: underline;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+
+  background: var(--white);
+  color: var(--maroon);
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  transition: 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: var(--maroon-soft);
+}
+
+.logout {
+  margin-top: auto;
+
+  padding: 13px;
+
+  background: transparent;
+  color: #ead9df;
+
+  text-align: left;
+
+  border-radius: 11px;
+
+  font-weight: 700;
+
+  transition: 0.2s ease;
+}
+
+.logout:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--white);
+}
+
+
+/* =========================================================
+   6. WARNING / NOTICE
+   ========================================================= */
+
+.warning {
+  padding: 10px;
+
+  background: var(--warning-soft);
+  color: #765400;
+
+  border-radius: 10px;
+
+  font-size: 12px;
+}
+
+code {
+  padding: 2px 4px;
+
+  background: #f0ecee;
+
+  border-radius: 4px;
+}
+
+
+/* =========================================================
+   7. MAIN APPLICATION
+   ========================================================= */
+
+.app {
+  min-height: 100vh;
+}
+
+
+/* =========================================================
+   8. SIDEBAR
+   ========================================================= */
+
+.sidebar {
+  position: fixed;
+
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+  z-index: 10;
+
+  width: 245px;
+
+  padding: 26px 16px;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    linear-gradient(
+      180deg,
+      var(--maroon),
+      var(--maroon-dark)
+    );
+
+  color: var(--white);
+}
+
+.side-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 5px 10px 30px;
+}
+
+.side-brand span {
+  font-size: 27px;
+}
+
+.side-brand strong,
+.side-brand small {
+  display: block;
+}
+
+.side-brand strong {
+  font-size: 14px;
+}
+
+.side-brand small {
+  margin-top: 4px;
+
+  opacity: 0.65;
+
+  font-size: 11px;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 6px;
+}
+
+.nav-item {
+  padding: 13px;
+
+  background: transparent;
+  color: #ead9df;
+
+  text-align: left;
+
+  border-radius: 11px;
+
+  font-weight: 700;
+
+  transition: 0.2s ease;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+}
+
+
+/* =========================================================
+   9. MAIN CONTENT
+   ========================================================= */
+
+.main {
+  max-width: 1450px;
+
+  margin-left: 245px;
+
+  padding: 30px 36px 50px;
+}
+
+
+/* =========================================================
+   10. TOP BAR
+   ========================================================= */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 25px;
+}
+
+.topbar h2 {
+  margin: 0;
+
+  font-size: 29px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.user-pill {
+  padding: 9px 12px;
+
+  background: var(--white);
+  color: var(--muted);
+
+  border: 1px solid var(--line);
+  border-radius: 99px;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   11. HERO CARD
+   ========================================================= */
+
+.hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 18px;
+
+  padding: 26px 28px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--maroon-deep),
+      var(--maroon)
+    );
+
+  color: var(--white);
+
+  border-radius: var(--radius-xl);
+
+  box-shadow: var(--shadow);
+}
+
+.hero-card.compact {
+  margin-bottom: 20px;
+}
+
+.label {
+  opacity: 0.7;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.hero-number {
+  margin: 7px 0;
+
+  font-size: 38px;
+  font-weight: 800;
+}
+
+.hero-ball {
+  opacity: 0.25;
+
+  font-size: 70px;
+}
+
+.status {
+  font-size: 12px;
+}
+
+.status.ok {
+  color: #f5d0dc;
+}
+
+
+/* =========================================================
+   12. STATISTICS
+   ========================================================= */
+
+.stats-grid {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 14px;
+
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  padding: 19px;
+
+  background: var(--card);
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+
+  box-shadow:
+    0 5px 20px rgba(33, 21, 26, 0.04);
+}
+
+.stat-card span {
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.stat-card strong {
+  display: block;
+
+  margin-top: 8px;
+
+  font-size: 22px;
+}
+
+
+/* =========================================================
+   13. SECTION HEADERS
+   ========================================================= */
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin: 25px 0 13px;
+}
+
+.section-head h3 {
+  margin: 0;
+
+  font-size: 18px;
+}
+
+.section-head p {
+  margin: 5px 0 0;
+
+  font-size: 12px;
+}
+
+.section-head .primary {
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   14. CASH CARDS
+   ========================================================= */
+
+.cash-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 13px;
+}
+
+.cash-card {
+  padding: 18px;
+
+  background: var(--white);
+
+  border: 1px solid var(--line);
+  border-radius: 17px;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.cash-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow: var(--shadow);
+}
+
+.cash-card .person {
+  font-weight: 800;
+}
+
+.cash-card .amount {
+  margin-top: 8px;
+
+  font-size: 25px;
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   15. MATCH CARDS
+   ========================================================= */
+
+.match-list {
+  display: grid;
+  gap: 10px;
+}
+
+.match-card {
+  display: grid;
+
+  grid-template-columns: 1fr auto;
+
+  gap: 10px;
+
+  padding: 17px;
+
+  background: var(--white);
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.match-card strong {
+  font-size: 15px;
+}
+
+.match-meta {
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.match-balance {
+  align-self: center;
+
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   16. FINANCIAL STATUS
+   ========================================================= */
+
+.positive {
+  color: var(--success);
+}
+
+.negative {
+  color: var(--danger);
+}
+
+.pill {
+  display: inline-block;
+
+  padding: 5px 8px;
+
+  background: var(--maroon-soft);
+  color: var(--maroon-dark);
+
+  border-radius: 99px;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   17. TOOLBAR / SEARCH
+   ========================================================= */
+
+.toolbar {
+  display: flex;
+
+  gap: 10px;
+
+  margin: 14px 0;
+}
+
+.toolbar input,
+.toolbar select {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  background: #fdfbfc;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  outline: none;
+}
+
+.toolbar input {
+  max-width: 420px;
+}
+
+.toolbar input:focus,
+.toolbar select:focus {
+  border-color: var(--maroon);
+
+  box-shadow:
+    0 0 0 3px rgba(138, 21, 56, 0.07);
+}
+
+
+/* =========================================================
+   18. TABLES
+   ========================================================= */
+
+.table-wrap {
+  overflow: auto;
+
+  background: var(--white);
+
+  border: 1px solid var(--line);
+  border-radius: 17px;
+}
+
+.data-table {
+  width: 100%;
+
+  min-width: 720px;
+
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px 15px;
+
+  border-bottom: 1px solid var(--line);
+
+  text-align: left;
+
+  font-size: 12px;
+}
+
+.data-table th {
+  background: #fcfafb;
+
+  color: #81767b;
+
+  font-size: 10px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.08em;
+}
+
+.data-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #fdf9fb;
+}
+
+
+/* =========================================================
+   19. REPORTS
+   ========================================================= */
+
+.report-box {
+  margin-top: 20px;
+}
+
+
+/* =========================================================
+   20. MODAL
+   ========================================================= */
+
+.modal {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 50;
+
+  display: grid;
+
+  place-items: center;
+}
+
+.modal-backdrop {
+  position: absolute;
+
+  inset: 0;
+
+  background: rgba(20, 4, 10, 0.82);
+}
+
+.modal-box {
+  position: relative;
+
+  width: min(560px, calc(100% - 28px));
+
+  max-height: 90vh;
+
+  overflow: auto;
+
+  padding: 24px;
+
+  background: var(--white);
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.4);
+}
+
+.modal-box h3 {
+  margin: 0 0 18px;
+}
+
+.modal-box input,
+.modal-box select,
+.modal-box textarea {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  background: #fdfbfc;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  outline: none;
+
+  resize: vertical;
+}
+
+.modal-box input:focus,
+.modal-box select:focus,
+.modal-box textarea:focus {
+  border-color: var(--maroon);
+
+  box-shadow:
+    0 0 0 3px rgba(138, 21, 56, 0.07);
+}
+
+.form-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 13px;
+}
+
+.form-grid .full-row {
+  grid-column: 1 / -1;
+}
+
+.modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  margin-top: 20px;
+}
+
+
+/* =========================================================
+   21. IN-HAND CASH MEMBER MANAGEMENT
+   These classes are used by the updated app.js.
+   ========================================================= */
+
+/* Container for the member controls */
+.cash-member-tools {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+/* Add member button */
+.add-member-btn {
+  padding: 9px 12px;
+
+  background: var(--maroon-soft);
+  color: var(--maroon);
+
+  border-radius: 10px;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  transition: 0.2s ease;
+}
+
+.add-member-btn:hover {
+  background: #f0dce4;
+}
+
+
+/* Member management list */
+.member-row {
+  display: grid;
+
+  grid-template-columns: 1fr auto;
+
+  gap: 10px;
+
+  align-items: center;
+
+  padding: 12px;
+
+  margin-top: 8px;
+
+  background: #fcfafb;
+
+  border: 1px solid var(--line);
+
+  border-radius: 12px;
+}
+
+
+/* Member information */
+.member-row-info {
+  min-width: 0;
+}
+
+.member-row-name {
+  font-weight: 800;
+}
+
+.member-row-meta {
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+/* Member action buttons */
+.member-row-actions {
+  display: flex;
+
+  gap: 6px;
+}
+
+.member-remove-btn {
+  padding: 8px 10px;
+
+  background: var(--danger-soft);
+  color: var(--danger);
+
+  border-radius: 9px;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.member-remove-btn:hover {
+  background: #ffdcdc;
+}
+
+
+/* =========================================================
+   22. EXPENSE HELPERS
+   ========================================================= */
+
+.expense-row {
+  display: grid;
+
+  grid-template-columns: 1fr auto;
+
+  gap: 8px;
+
+  align-items: end;
+
+  margin-top: 8px;
+
+  padding: 10px;
+
+  background: #fcfafb;
+
+  border-radius: 12px;
+}
+
+.danger-btn {
+  padding: 9px;
+
+  background: var(--danger-soft);
+  color: var(--danger);
+
+  border-radius: 9px;
+}
+
+.add-row {
+  margin-top: 8px;
+
+  padding: 9px;
+
+  background: var(--maroon-soft);
+  color: var(--maroon);
+
+  border-radius: 9px;
+
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   23. EMPTY STATE
+   ========================================================= */
+
+.empty {
+  padding: 30px;
+
+  color: var(--muted);
+
+  text-align: center;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   24. TOAST NOTIFICATION
+   ========================================================= */
+
+.toast {
+  position: fixed;
+
+  right: 18px;
+  bottom: 18px;
+
+  z-index: 100;
+
+  padding: 12px 15px;
+
+  background: var(--maroon-dark);
+  color: var(--white);
+
+  border-radius: 12px;
+
+  box-shadow: var(--shadow);
+
+  opacity: 0;
+
+  transform: translateY(10px);
+
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+
+  pointer-events: none;
+
+  font-size: 12px;
+}
+
+.toast.show {
+  opacity: 1;
+
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   25. BOTTOM MOBILE NAVIGATION
+   ========================================================= */
+
+.bottom-nav {
+  display: none;
+}
+
+
+/* =========================================================
+   26. TABLET / MOBILE
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+  /* Hide desktop sidebar */
+  .sidebar {
+    display: none;
+  }
+
+  /* Main content */
+  .main {
+    margin: 0;
+
+    padding:
+      22px
+      15px
+      92px;
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    position: fixed;
+
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    z-index: 20;
+
+    height: 68px;
+
+    display: grid;
+
+    grid-template-columns: repeat(5, 1fr);
+
+    padding-bottom: env(safe-area-inset-bottom);
+
+    background: var(--white);
+
+    border-top: 1px solid var(--line);
+  }
+
+  .bottom-nav button {
+    display: grid;
+
+    place-items: center;
+
+    padding: 7px 0;
+
+    background: none;
+
+    color: #93898e;
+
+    font-size: 18px;
+  }
+
+  .bottom-nav span {
+    font-size: 9px;
+
+    font-weight: 700;
+  }
+
+  .bottom-nav button.active {
+    color: var(--maroon);
+  }
+
+  /* Top bar */
+  .topbar {
+    margin-bottom: 18px;
+  }
+
+  .topbar h2 {
+    font-size: 23px;
+  }
+
+  .user-pill {
+    display: none;
+  }
+
+  /* Statistics */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Cash cards */
+  .cash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Hero */
+  .hero-number {
+    font-size: 31px;
+  }
+
+  .hero-ball {
+    font-size: 50px;
+  }
+
+  /* Forms */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .full-row {
+    grid-column: auto;
+  }
+
+  /* Section headers */
+  .section-head {
+    align-items: flex-start;
+  }
+
+  .section-head .primary {
+    white-space: nowrap;
+  }
+
+  /* Search */
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .toolbar input {
+    max-width: none;
+  }
+
+  /* Cash member controls */
+  .cash-member-tools {
+    width: 100%;
+
+    justify-content: flex-end;
+  }
+}
+
+
+/* =========================================================
+   27. SMALL MOBILE SCREENS
+   ========================================================= */
+
+@media (max-width: 450px) {
+
+  .stats-grid,
+  .cash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card {
+    padding: 22px;
+  }
+
+  .match-card {
+    padding: 14px;
+  }
+
+  .auth-card {
+    padding: 26px 22px;
+
+    border-radius: 22px;
+  }
+
+  .auth-card h1 {
+    font-size: 28px;
+  }
+
+  .modal-box {
+    padding: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* =========================================================
+   END OF STYLESHEET
+   ========================================================= */

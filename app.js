@@ -1,104 +1,85 @@
 /* ============================================================
-   QATAR FOOTBALL KOOTTAM - FINANCE APP
+   QATAR FOOTBALL KOOTTAM FINANCE
    ------------------------------------------------------------
-   This file handles:
+   Main JavaScript file
 
-   1. Supabase connection
-   2. User login / logout
-   3. Password reset email
-   4. Password update after reset
-   5. Loading finance data from Supabase
-   6. Matches
-   7. Expenses
-   8. Cash transfers
-   9. Dashboard
-   10. Reports
-   11. CSV export
+   FEATURES:
+   1. Supabase authentication
+   2. Login / logout
+   3. Forgot password
+   4. Password reset redirect
+   5. Members
+   6. Add / deactivate members
+   7. Matches
+   8. Expenses
+   9. Cash transactions
+   10. Dashboard
+   11. Reports
+   12. CSV export
 
-   IMPORTANT SECURITY NOTES:
-   - Never put the Supabase service_role key here.
-   - Only use the Supabase publishable/anon key.
-   - The password reset page must be added to Supabase
-     Authentication > URL Configuration.
-   ============================================================ */
+   IMPORTANT:
+   - SUPABASE_URL must be your project URL.
+   - Do NOT add /rest/v1/ to the URL.
+   - Never put the Supabase service_role key in this file.
+   - Only use the publishable/anon key in frontend code.
+
+   NEW MEMBER FEATURE:
+   - Members can be added from the Cash page.
+   - New members start with QAR 0 cash.
+   - Members automatically appear in transfer,
+     expense and collection-receiver dropdowns.
+   - Members are deactivated instead of deleted so
+     historical transactions remain safe.
+============================================================ */
 
 
 /* ============================================================
    1. SUPABASE CONFIGURATION
-   ============================================================ */
+============================================================ */
 
-/*
-   Your Supabase project URL.
-
-   IMPORTANT:
-   Do NOT add:
-       /rest/v1/
-
-   Correct:
-       https://soakyzawpmsoxqodskgr.supabase.co
-*/
+// Your Supabase project URL
 const SUPABASE_URL =
   "https://soakyzawpmsoxqodskgr.supabase.co";
 
-
-/*
-   Supabase publishable key.
-
-   Never use a service_role key in browser JavaScript.
-*/
+// Your Supabase publishable/anon key
 const SUPABASE_KEY =
   "sb_publishable_knMPrkJfZ003rPvb7bRgRA_QJC8DWGJ";
 
 
-/*
-   Password reset page.
+/* ============================================================
+   2. PASSWORD RESET PAGE
+============================================================ */
 
-   IMPORTANT:
-   This must be ONLY the URL.
-
-   DO NOT write:
-       redirectTo: "URL"
-
-   The redirectTo property is added later when calling
-   resetPasswordForEmail().
-*/
 const RESET_PAGE_URL =
   "https://jaseel-mk.github.io/qatar-football-koottam-finance/reset.html";
 
 
-/*
-   Check whether Supabase has been configured.
+/* ============================================================
+   3. CHECK WHETHER SUPABASE IS CONFIGURED
+============================================================ */
 
-   This prevents the application from trying to connect
-   when placeholder values are still being used.
-*/
 const configured =
   !SUPABASE_URL.startsWith("YOUR_") &&
   !SUPABASE_KEY.startsWith("YOUR_");
 
 
-/*
-   Create the Supabase client.
+/* ============================================================
+   4. CREATE SUPABASE CLIENT
+============================================================ */
 
-   persistSession:
-   Keeps the user's login session in the browser.
-
-   autoRefreshToken:
-   Automatically refreshes the authentication token.
-
-   detectSessionInUrl:
-   IMPORTANT for password recovery links.
-   Supabase places recovery information in the URL and
-   this allows the Supabase client to detect it.
-*/
 const sb = configured
   ? window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_KEY,
       {
         auth: {
+          // Keep the user logged in after refreshing the page.
           persistSession: true,
+
+          // Automatically refresh expired sessions.
           autoRefreshToken: true,
+
+          // Detect authentication/password-reset links.
           detectSessionInUrl: true
         }
       }
@@ -107,27 +88,11 @@ const sb = configured
 
 
 /* ============================================================
-   2. GLOBAL APPLICATION STATE
-   ============================================================ */
+   5. APPLICATION STATE
+============================================================ */
 
-/*
-   All data used by the application is stored here.
+const $ = id => document.getElementById(id);
 
-   members:
-   Active football group members.
-
-   matches:
-   Football matches.
-
-   expenses:
-   Match-related expenses.
-
-   ledger:
-   Cash movements between members.
-
-   page:
-   Currently selected application page.
-*/
 let state = {
   members: [],
   matches: [],
@@ -138,18 +103,19 @@ let state = {
 
 
 /* ============================================================
-   3. SMALL HELPER FUNCTIONS
-   ============================================================ */
+   6. GENERAL HELPER FUNCTIONS
+============================================================ */
 
 
 /*
-   Convert a number into QAR currency format.
-
-   Example:
-       money(100)
-       -> QAR 100
-*/
+ * Format an amount as QAR.
+ *
+ * Example:
+ * 150     -> QAR 150
+ * 150.50  -> QAR 150.50
+ */
 function money(n) {
+
   return `QAR ${Number(n || 0).toLocaleString(
     "en-QA",
     {
@@ -161,12 +127,13 @@ function money(n) {
 
 
 /*
-   Escape HTML before inserting database values
-   into innerHTML.
-
-   This helps prevent unwanted HTML/script injection.
-*/
+ * Escape HTML characters.
+ *
+ * This prevents user-entered text from being interpreted
+ * as HTML when inserted into the page.
+ */
 function esc(v) {
+
   return String(v ?? "").replace(
     /[&<>"']/g,
     m => ({
@@ -181,13 +148,15 @@ function esc(v) {
 
 
 /*
-   Convert a database date into a readable format.
-
-   Example:
-       2026-08-19
-       -> 19 Aug 2026
-*/
+ * Convert YYYY-MM-DD into a readable date.
+ *
+ * Example:
+ * 2026-08-19
+ * becomes:
+ * 19 Aug 2026
+ */
 function dateText(v) {
+
   if (!v) return "—";
 
   return new Date(v + "T00:00:00")
@@ -203,9 +172,10 @@ function dateText(v) {
 
 
 /*
-   Display a temporary notification message.
-*/
+ * Display a temporary notification.
+ */
 function toast(msg) {
+
   const t = $("toast");
 
   if (!t) {
@@ -214,6 +184,7 @@ function toast(msg) {
   }
 
   t.textContent = msg;
+
   t.classList.add("show");
 
   setTimeout(
@@ -224,66 +195,54 @@ function toast(msg) {
 
 
 /*
-   Get today's date in YYYY-MM-DD format.
-*/
+ * Return today's date in YYYY-MM-DD format.
+ */
 function today() {
+
   return new Date()
     .toISOString()
     .slice(0, 10);
 }
 
 
-/*
-   Short helper for document.getElementById().
-*/
-const $ = id => document.getElementById(id);
-
-
 /* ============================================================
-   4. PASSWORD RESET
-   ============================================================ */
+   7. PASSWORD RESET
+============================================================ */
 
 
 /*
-   Adds the "Forgot password?" button below the login form.
-
-   The button is created dynamically so we don't need to
-   manually add it to index.html.
-*/
+ * Add "Forgot password?" below the login form.
+ *
+ * The button is created with JavaScript so the existing
+ * index.html does not need a separate forgot-password button.
+ */
 function addForgotPasswordLink() {
 
   const form = $("loginForm");
 
-  /*
-     Stop if login form doesn't exist.
-  */
   if (!form) return;
 
-
-  /*
-     Stop if button was already created.
-     This prevents duplicate buttons.
-  */
+  // Don't create it twice.
   if ($("forgotPasswordBtn")) return;
 
 
-  /*
-     Create wrapper.
-  */
-  const wrapper = document.createElement("div");
+  const wrapper =
+    document.createElement("div");
 
   wrapper.style.cssText =
-    "text-align:center;margin-top:12px;";
+    "text-align:center;" +
+    "margin-top:12px;";
 
 
-  /*
-     Create Forgot Password button.
-  */
-  const btn = document.createElement("button");
+  const btn =
+    document.createElement("button");
 
   btn.type = "button";
+
   btn.id = "forgotPasswordBtn";
-  btn.textContent = "Forgot password?";
+
+  btn.textContent =
+    "Forgot password?";
 
   btn.style.cssText =
     "border:0;" +
@@ -295,18 +254,12 @@ function addForgotPasswordLink() {
     "padding:8px;";
 
 
-  /*
-     When clicked, send password reset email.
-  */
-  btn.onclick = sendPasswordReset;
+  btn.onclick =
+    sendPasswordReset;
 
 
   wrapper.appendChild(btn);
 
-
-  /*
-     Put the button underneath the login form.
-  */
   form.insertAdjacentElement(
     "afterend",
     wrapper
@@ -315,34 +268,29 @@ function addForgotPasswordLink() {
 
 
 /*
-   Send password reset email.
-
-   User must first enter their email in the login email field.
-*/
+ * Send password reset email.
+ */
 async function sendPasswordReset() {
 
-  /*
-     Check Supabase configuration.
-  */
   if (!sb) {
-    toast("Supabase is not configured.");
+
+    toast(
+      "Supabase is not configured."
+    );
+
     return;
   }
 
 
-  /*
-     Read email from login form.
-  */
   const email =
     $("loginEmail")?.value?.trim();
 
 
-  /*
-     Email is required.
-  */
   if (!email) {
 
-    toast("Enter your email address first.");
+    toast(
+      "Enter your email address first."
+    );
 
     $("loginEmail")?.focus();
 
@@ -352,19 +300,6 @@ async function sendPasswordReset() {
 
   try {
 
-    /*
-       Ask Supabase to send password reset email.
-
-       IMPORTANT:
-       redirectTo tells Supabase where the user should
-       be sent after clicking the reset email.
-
-       This URL must also be allowed in:
-       Supabase Dashboard
-       > Authentication
-       > URL Configuration
-       > Redirect URLs
-    */
     const { error } =
       await sb.auth.resetPasswordForEmail(
         email,
@@ -374,9 +309,6 @@ async function sendPasswordReset() {
       );
 
 
-    /*
-       If Supabase returns an error, show it.
-    */
     if (error) {
 
       console.error(
@@ -390,9 +322,6 @@ async function sendPasswordReset() {
     }
 
 
-    /*
-       Password reset email was successfully requested.
-    */
     toast(
       "Password reset email sent. Check your email."
     );
@@ -412,16 +341,12 @@ async function sendPasswordReset() {
 
 
 /*
-   Update the user's password.
-
-   This function is normally called from reset.html
-   after the user opens the reset link.
-*/
+ * Update user's password.
+ *
+ * This function can also be used by reset.html.
+ */
 async function updatePassword(newPassword) {
 
-  /*
-     Make sure Supabase is configured.
-  */
   if (!sb) {
 
     toast(
@@ -432,9 +357,6 @@ async function updatePassword(newPassword) {
   }
 
 
-  /*
-     Password must contain at least 6 characters.
-  */
   if (
     !newPassword ||
     newPassword.length < 6
@@ -448,18 +370,12 @@ async function updatePassword(newPassword) {
   }
 
 
-  /*
-     Ask Supabase to update the password.
-  */
   const { error } =
     await sb.auth.updateUser({
       password: newPassword
     });
 
 
-  /*
-     Handle update error.
-  */
   if (error) {
 
     console.error(
@@ -473,9 +389,6 @@ async function updatePassword(newPassword) {
   }
 
 
-  /*
-     Password successfully changed.
-  */
   toast(
     "Password updated successfully."
   );
@@ -485,18 +398,15 @@ async function updatePassword(newPassword) {
 
 
 /* ============================================================
-   5. APPLICATION INITIALIZATION
-   ============================================================ */
+   8. APPLICATION INITIALIZATION
+============================================================ */
 
-
-/*
-   Start the application.
-*/
 async function init() {
 
   /*
-     If Supabase isn't configured, show configuration warning.
-  */
+   * If Supabase configuration is missing,
+   * show configuration warning.
+   */
   if (!configured) {
 
     $("configWarning")
@@ -507,82 +417,57 @@ async function init() {
   }
 
 
-  /*
-     Add Forgot Password button.
-  */
+  // Add Forgot Password link.
   addForgotPasswordLink();
 
 
   /*
-     Ask Supabase whether a valid login session already exists.
-
-     This is important because users should not need to
-     login again every time they refresh the page.
-  */
+   * Check whether a user is already logged in.
+   */
   const {
     data: { session }
   } = await sb.auth.getSession();
 
 
   /*
-     If a session exists, show application.
-     Otherwise show login page.
-  */
+   * Show correct screen.
+   */
   if (session) {
 
-    await showApp(session);
+    showApp(session);
 
   } else {
 
     showAuth();
+
   }
 
 
   /*
-     Listen for authentication changes.
-
-     Examples:
-       SIGNED_IN
-       SIGNED_OUT
-       TOKEN_REFRESHED
-       PASSWORD_RECOVERY
-  */
+   * Listen for authentication changes.
+   */
   sb.auth.onAuthStateChange(
-    async (_event, session) => {
+    (_event, session) => {
 
-      console.log(
-        "Auth state changed:",
-        _event
-      );
-
-
-      /*
-         User is logged in.
-      */
       if (session) {
 
-        await showApp(session);
+        showApp(session);
 
       } else {
 
-        /*
-           User is logged out.
-        */
         showAuth();
+
       }
+
     }
   );
 }
 
 
 /* ============================================================
-   6. SHOW LOGIN / SHOW APPLICATION
-   ============================================================ */
+   9. SHOW LOGIN PAGE
+============================================================ */
 
-
-/*
-   Display login screen.
-*/
 function showAuth() {
 
   $("authView")
@@ -593,13 +478,15 @@ function showAuth() {
     ?.classList
     .add("hidden");
 
+
   addForgotPasswordLink();
 }
 
 
-/*
-   Display main application after successful login.
-*/
+/* ============================================================
+   10. SHOW MAIN APPLICATION
+============================================================ */
+
 async function showApp(session) {
 
   $("authView")
@@ -612,43 +499,33 @@ async function showApp(session) {
 
 
   /*
-     Display logged-in user's email.
-  */
+   * Display logged-in user's email.
+   */
   if ($("userEmail")) {
 
     $("userEmail").textContent =
       session.user.email ||
       "Signed in";
+
   }
 
 
   /*
-     Load finance data.
-  */
+   * Load finance data.
+   */
   await loadData();
 }
 
 
 /* ============================================================
-   7. SUPABASE ERROR HANDLER
-   ============================================================ */
+   11. SUPABASE ERROR HANDLER
+============================================================ */
 
-
-/*
-   Check Supabase query result.
-
-   If there is an error:
-       - log it to browser console
-       - show error to user
-       - throw the error
-*/
 async function requireOk(result) {
 
   if (result.error) {
 
-    console.error(
-      result.error
-    );
+    console.error(result.error);
 
     toast(
       result.error.message
@@ -662,23 +539,16 @@ async function requireOk(result) {
 
 
 /* ============================================================
-   8. LOAD ALL DATABASE DATA
-   ============================================================ */
+   12. LOAD DATA FROM SUPABASE
+============================================================ */
 
-
-/*
-   Load all required tables from Supabase.
-
-   Tables:
-       members
-       matches
-       expenses
-       cash_transactions
-*/
 async function loadData() {
 
   try {
 
+    /*
+     * Load all required tables simultaneously.
+     */
     const [
       m,
       ma,
@@ -687,8 +557,10 @@ async function loadData() {
     ] = await Promise.all([
 
       /*
-         Active members.
-      */
+       * Active members.
+       *
+       * Only active members appear in the application.
+       */
       sb
         .from("members")
         .select("*")
@@ -697,8 +569,8 @@ async function loadData() {
 
 
       /*
-         Matches.
-      */
+       * Matches.
+       */
       sb
         .from("matches")
         .select("*")
@@ -711,10 +583,8 @@ async function loadData() {
 
 
       /*
-         Expenses.
-
-         Also fetch the member who paid.
-      */
+       * Expenses.
+       */
       sb
         .from("expenses")
         .select(
@@ -729,27 +599,32 @@ async function loadData() {
 
 
       /*
-         Cash transactions.
-
-         Fetch names of sender and receiver.
-      */
+       * Cash ledger.
+       *
+       * IMPORTANT:
+       * Both from_member and to_member now request
+       * the member name.
+       */
       sb
         .from("cash_transactions")
-        .select(
-          "*, from_member:from_member_id(name), to_member:to_member_id(name)"
-        )
+        .select(`
+          *,
+          from_member:from_member_id(name),
+          to_member:to_member_id(name)
+        `)
         .order(
           "transaction_date",
           {
             ascending: false
           }
         )
+
     ]);
 
 
     /*
-       Save database results into application state.
-    */
+     * Store results.
+     */
     state.members =
       await requireOk(m) || [];
 
@@ -764,32 +639,24 @@ async function loadData() {
 
 
     /*
-       Refresh the user interface.
-    */
+     * Refresh interface.
+     */
     render();
 
   } catch (e) {
 
-    /*
-       requireOk() already displays the error.
-
-       We catch it here so the application doesn't crash.
-    */
+    console.error(
+      "Data loading error:",
+      e
+    );
   }
 }
 
 
 /* ============================================================
-   9. MATCH BALANCE
-   ============================================================ */
+   13. MATCH BALANCE
+============================================================ */
 
-
-/*
-   Calculate balance for one match.
-
-   Balance =
-       Total collection - Match expenses
-*/
 function matchBalance(match) {
 
   const expenses =
@@ -812,21 +679,20 @@ function matchBalance(match) {
 
 
 /* ============================================================
-   10. CASH BALANCE BY MEMBER
-   ============================================================ */
+   14. CASH BALANCE BY MEMBER
+============================================================ */
 
-
-/*
-   Calculate current cash balance for every member.
-*/
 function cashByMember() {
 
   const out = {};
 
 
   /*
-     Start every active member with zero balance.
-  */
+   * Start every active member with QAR 0.
+   *
+   * This is what allows newly added members to
+   * automatically appear with a zero balance.
+   */
   state.members.forEach(m => {
 
     out[m.id] = {
@@ -838,8 +704,8 @@ function cashByMember() {
 
 
   /*
-     Process every cash transaction.
-  */
+   * Apply every cash transaction.
+   */
   state.ledger.forEach(t => {
 
     const amount =
@@ -847,8 +713,8 @@ function cashByMember() {
 
 
     /*
-       Money received.
-    */
+     * Money received.
+     */
     if (
       t.to_member_id &&
       out[t.to_member_id]
@@ -857,12 +723,13 @@ function cashByMember() {
       out[
         t.to_member_id
       ].balance += amount;
+
     }
 
 
     /*
-       Money paid/sent.
-    */
+     * Money paid/transferred.
+     */
     if (
       t.from_member_id &&
       out[t.from_member_id]
@@ -871,6 +738,7 @@ function cashByMember() {
       out[
         t.from_member_id
       ].balance -= amount;
+
     }
 
   });
@@ -881,40 +749,29 @@ function cashByMember() {
 
 
 /* ============================================================
-   11. TOTALS
-   ============================================================ */
+   15. TOTAL FINANCE VALUES
+============================================================ */
 
-
-/*
-   Calculate overall finance totals.
-*/
 function totals() {
 
-  /*
-     Total money collected from matches.
-  */
   const collected =
     state.matches.reduce(
       (s, m) =>
-        s + Number(m.total_collected),
+        s +
+        Number(m.total_collected),
       0
     );
 
 
-  /*
-     Total expenses.
-  */
   const expenses =
     state.expenses.reduce(
       (s, e) =>
-        s + Number(e.amount),
+        s +
+        Number(e.amount),
       0
     );
 
 
-  /*
-     Total cash currently held by members.
-  */
   const cash =
     cashByMember().reduce(
       (s, m) =>
@@ -933,13 +790,9 @@ function totals() {
 
 
 /* ============================================================
-   12. RENDER ENTIRE APPLICATION
-   ============================================================ */
+   16. MAIN RENDER FUNCTION
+============================================================ */
 
-
-/*
-   Refresh all sections of the application.
-*/
 function render() {
 
   renderDashboard();
@@ -960,92 +813,120 @@ function render() {
 
 
 /* ============================================================
-   13. DASHBOARD
-   ============================================================ */
-
+   17. DASHBOARD
+============================================================ */
 
 function renderDashboard() {
 
   const t = totals();
 
 
+  if ($("totalCash"))
+    $("totalCash").textContent =
+      money(t.cash);
+
+
+  if ($("cashTotal2"))
+    $("cashTotal2").textContent =
+      money(t.cash);
+
+
+  if ($("totalCollected"))
+    $("totalCollected").textContent =
+      money(t.collected);
+
+
+  if ($("totalExpenses"))
+    $("totalExpenses").textContent =
+      money(t.expenses);
+
+
+  if ($("netBalance"))
+    $("netBalance").textContent =
+      money(t.net);
+
+
+  if ($("totalMatches"))
+    $("totalMatches").textContent =
+      state.matches.length;
+
+
   /*
-     Update dashboard numbers.
-  */
-  $("totalCash").textContent =
-    money(t.cash);
-
-  $("cashTotal2").textContent =
-    money(t.cash);
-
-  $("totalCollected").textContent =
-    money(t.collected);
-
-  $("totalExpenses").textContent =
-    money(t.expenses);
-
-  $("netBalance").textContent =
-    money(t.net);
-
-  $("totalMatches").textContent =
-    state.matches.length;
-
-
-  /*
-     Display cash balance for each member.
-  */
+   * Display cash balance for every active member.
+   */
   const people =
     cashByMember();
 
-  $("cashCards").innerHTML =
-    people
-      .map(
-        p =>
-          `<div class="cash-card">
-             <div class="person">
-               ${esc(p.name)}
-             </div>
 
-             <div class="amount">
-               ${money(p.balance)}
-             </div>
-           </div>`
-      )
-      .join("") ||
-    empty("No members");
+  if ($("cashCards")) {
 
+    $("cashCards").innerHTML =
+      people
+        .map(
+          p =>
+            `<div class="cash-card">
+              <div class="person">
+                ${esc(p.name)}
+              </div>
 
-  /*
-     Display cash status.
-  */
-  $("cashStatus").innerHTML =
-    `● ${t.cash >= 0
-      ? "Balanced"
-      : "Check cash"}`;
+              <div class="amount">
+                ${money(p.balance)}
+              </div>
+            </div>`
+        )
+        .join("") ||
+      empty("No members");
 
-  $("cashStatus").className =
-    `status ${t.cash >= 0
-      ? "ok"
-      : ""}`;
+  }
 
 
   /*
-     Display last five matches.
-  */
+   * Cash status.
+   */
+  if ($("cashStatus")) {
+
+    $("cashStatus").innerHTML =
+      `● ${
+        t.cash >= 0
+          ? "Balanced"
+          : "Check cash"
+      }`;
+
+    $("cashStatus").className =
+      `status ${
+        t.cash >= 0
+          ? "ok"
+          : ""
+      }`;
+
+  }
+
+
+  /*
+   * Show latest five matches.
+   */
   const recent =
     state.matches.slice(0, 5);
 
-  $("recentMatches").innerHTML =
-    recent
-      .map(matchCard)
-      .join("") ||
-    empty("No matches yet.");
+
+  if ($("recentMatches")) {
+
+    $("recentMatches").innerHTML =
+      recent
+        .map(
+          m => matchCard(m)
+        )
+        .join("") ||
+      empty("No matches yet.");
+
+  }
 }
 
 
-/*
-   Create a small match card.
-*/
+/* ============================================================
+   18. MATCH CARD
+============================================================ */
+
 function matchCard(m) {
 
   const b =
@@ -1056,24 +937,33 @@ function matchCard(m) {
     <div class="match-card">
 
       <div>
+
         <strong>
           Match #${m.match_number}
         </strong>
 
         <div class="match-meta">
           ${dateText(m.match_date)}
-          · ${m.players} players
-          · Collected ${money(m.total_collected)}
+          ·
+          ${m.players} players
+          ·
+          Collected ${money(m.total_collected)}
         </div>
+
       </div>
 
-      <div class="match-balance ${
-        b >= 0
-          ? "positive"
-          : "negative"
-      }">
-        ${b >= 0 ? "+" : ""}
-        ${money(b)}
+      <div
+        class="match-balance ${
+          b >= 0
+            ? "positive"
+            : "negative"
+        }"
+      >
+        ${
+          b >= 0
+            ? "+"
+            : ""
+        }${money(b)}
       </div>
 
     </div>
@@ -1081,9 +971,10 @@ function matchCard(m) {
 }
 
 
-/*
-   Display an empty-state message.
-*/
+/* ============================================================
+   19. EMPTY STATE
+============================================================ */
+
 function empty(text) {
 
   return `
@@ -1095,24 +986,23 @@ function empty(text) {
 
 
 /* ============================================================
-   14. MATCHES PAGE
-   ============================================================ */
-
+   20. MATCHES PAGE
+============================================================ */
 
 function renderMatches() {
 
   const q =
-    ($("matchSearch")?.value || "")
-      .toLowerCase();
+    (
+      $("matchSearch")
+        ?.value || ""
+    ).toLowerCase();
+
 
   const f =
-    $("matchFilter")?.value ||
-    "all";
+    $("matchFilter")
+      ?.value || "all";
 
 
-  /*
-     Search matches.
-  */
   let rows =
     state.matches.filter(
       m =>
@@ -1123,8 +1013,8 @@ function renderMatches() {
 
 
   /*
-     Apply balance filter.
-  */
+   * Filter by balance.
+   */
   if (f !== "all") {
 
     rows =
@@ -1134,18 +1024,22 @@ function renderMatches() {
             ? matchBalance(m) >= 0
             : matchBalance(m) < 0
       );
+
   }
 
 
-  /*
-     Create table.
-  */
+  if (!$("matchesTable"))
+    return;
+
+
   $("matchesTable").innerHTML =
     rows.length
+
       ? `
         <table class="data-table">
 
           <thead>
+
             <tr>
               <th>Match</th>
               <th>Date</th>
@@ -1155,91 +1049,106 @@ function renderMatches() {
               <th>Balance</th>
               <th></th>
             </tr>
+
           </thead>
 
           <tbody>
 
-            ${rows.map(m => {
+            ${rows
+              .map(m => {
 
-              const ex =
-                state.expenses
-                  .filter(
-                    e =>
-                      e.match_id === m.id
-                  )
-                  .reduce(
-                    (s, e) =>
-                      s + Number(e.amount),
-                    0
-                  );
-
-              const b =
-                Number(m.total_collected) -
-                ex;
+                const ex =
+                  state.expenses
+                    .filter(
+                      e =>
+                        e.match_id === m.id
+                    )
+                    .reduce(
+                      (s, e) =>
+                        s +
+                        Number(e.amount),
+                      0
+                    );
 
 
-              return `
-                <tr>
+                const b =
+                  Number(
+                    m.total_collected
+                  ) - ex;
 
-                  <td>
-                    <strong>
-                      #${m.match_number}
-                    </strong>
-                  </td>
 
-                  <td>
-                    ${dateText(m.match_date)}
-                  </td>
+                return `
+                  <tr>
 
-                  <td>
-                    ${m.players}
-                  </td>
+                    <td>
+                      <strong>
+                        #${m.match_number}
+                      </strong>
+                    </td>
 
-                  <td>
-                    ${money(m.total_collected)}
-                  </td>
+                    <td>
+                      ${dateText(
+                        m.match_date
+                      )}
+                    </td>
 
-                  <td>
-                    ${money(ex)}
-                  </td>
+                    <td>
+                      ${m.players}
+                    </td>
 
-                  <td class="${
-                    b >= 0
-                      ? "positive"
-                      : "negative"
-                  }">
+                    <td>
+                      ${money(
+                        m.total_collected
+                      )}
+                    </td>
 
-                    <strong>
-                      ${money(b)}
-                    </strong>
+                    <td>
+                      ${money(ex)}
+                    </td>
 
-                  </td>
+                    <td
+                      class="${
+                        b >= 0
+                          ? "positive"
+                          : "negative"
+                      }"
+                    >
+                      <strong>
+                        ${money(b)}
+                      </strong>
+                    </td>
 
-                  <td>
-                    <button
-                      class="text-btn"
-                      onclick='openMatch(${JSON.stringify(m.id)})'>
-                      View
-                    </button>
-                  </td>
+                    <td>
 
-                </tr>
-              `;
+                      <button
+                        class="text-btn"
+                        onclick='openMatch(${JSON.stringify(m.id)})'
+                      >
+                        View
+                      </button>
 
-            }).join("")}
+                    </td>
+
+                  </tr>
+                `;
+
+              })
+              .join("")}
 
           </tbody>
 
         </table>
       `
-      : empty("No matches found.");
+
+      : empty(
+          "No matches found."
+        );
 }
 
 
 /* ============================================================
-   15. VIEW MATCH DETAILS
-   ============================================================ */
-
+   21. VIEW MATCH
+============================================================ */
 
 function openMatch(id) {
 
@@ -1249,12 +1158,14 @@ function openMatch(id) {
     );
 
 
-  if (!m) return;
+  if (!m)
+    return;
 
 
   const ex =
     state.expenses.filter(
-      e => e.match_id === id
+      e =>
+        e.match_id === id
     );
 
 
@@ -1266,24 +1177,29 @@ function openMatch(id) {
 
     <p class="muted">
       ${dateText(m.match_date)}
-      · ${m.players} players
+      ·
+      ${m.players} players
     </p>
+
 
     <div class="stats-grid">
 
       <div class="stat-card">
         <span>Collected</span>
         <strong>
-          ${money(m.total_collected)}
+          ${money(
+            m.total_collected
+          )}
         </strong>
       </div>
+
 
       <div class="stat-card">
         <span>Expenses</span>
         <strong>
           ${money(
             ex.reduce(
-              (s, e) =>
+              (s,e) =>
                 s + Number(e.amount),
               0
             )
@@ -1291,50 +1207,70 @@ function openMatch(id) {
         </strong>
       </div>
 
+
       <div class="stat-card">
         <span>Balance</span>
         <strong>
-          ${money(matchBalance(m))}
+          ${money(
+            matchBalance(m)
+          )}
         </strong>
       </div>
 
+
       <div class="stat-card">
-        <span>Collection/player</span>
+        <span>
+          Collection/player
+        </span>
+
         <strong>
-          ${money(m.collection_per_player)}
+          ${money(
+            m.collection_per_player
+          )}
         </strong>
       </div>
 
     </div>
 
-    <h4>Expenses</h4>
+
+    <h4>
+      Expenses
+    </h4>
+
 
     ${
-      ex.map(
-        e => `
-          <div class="match-card">
+      ex
+        .map(
+          e =>
+            `
+            <div class="match-card">
 
-            <div>
+              <div>
 
-              <strong>
-                ${esc(e.category)}
-              </strong>
+                <strong>
+                  ${esc(e.category)}
+                </strong>
 
-              <div class="match-meta">
-                ${esc(e.paid_by_name || "")}
-                ·
-                ${esc(e.description || "")}
+                <div class="match-meta">
+                  ${esc(
+                    e.paid_by_name || ""
+                  )}
+                  ·
+                  ${esc(
+                    e.description || ""
+                  )}
+                </div>
+
               </div>
 
+              <strong>
+                ${money(e.amount)}
+              </strong>
+
             </div>
-
-            <strong>
-              ${money(e.amount)}
-            </strong>
-
-          </div>
-        `
-      ).join("") ||
+            `
+        )
+        .join("") ||
       empty("No expenses")
     }
 
@@ -1343,27 +1279,29 @@ function openMatch(id) {
 
 
 /* ============================================================
-   16. ADD MATCH FORM
-   ============================================================ */
-
+   22. ADD MATCH FORM
+============================================================ */
 
 function openMatchForm() {
 
-  /*
-     Automatically calculate next match number.
-  */
   const next =
     Math.max(
       0,
       ...state.matches.map(
-        m => Number(m.match_number)
+        m =>
+          Number(
+            m.match_number
+          )
       )
     ) + 1;
 
 
   openModal(`
 
-    <h3>Add Match</h3>
+    <h3>
+      Add Match
+    </h3>
+
 
     <form id="matchForm">
 
@@ -1371,6 +1309,7 @@ function openMatchForm() {
 
         <label>
           Match number
+
           <input
             id="mfNum"
             type="number"
@@ -1380,8 +1319,10 @@ function openMatchForm() {
           >
         </label>
 
+
         <label>
           Date
+
           <input
             id="mfDate"
             type="date"
@@ -1390,8 +1331,10 @@ function openMatchForm() {
           >
         </label>
 
+
         <label>
           Players
+
           <input
             id="mfPlayers"
             type="number"
@@ -1401,8 +1344,10 @@ function openMatchForm() {
           >
         </label>
 
+
         <label>
           Collection / player
+
           <input
             id="mfRate"
             type="number"
@@ -1413,8 +1358,10 @@ function openMatchForm() {
           >
         </label>
 
+
         <label>
           Collected
+
           <input
             id="mfCollected"
             type="number"
@@ -1425,25 +1372,31 @@ function openMatchForm() {
           >
         </label>
 
+
         <label>
           Collection received by
+
           <select id="mfReceiver">
             ${memberOptions()}
           </select>
+
         </label>
 
+
         <label class="full-row">
+
           Notes
 
           <textarea
             id="mfNotes"
             rows="3"
-            placeholder="Optional">
-          </textarea>
+            placeholder="Optional"
+          ></textarea>
 
         </label>
 
       </div>
+
 
       <p class="small muted">
         Total collected is initially
@@ -1451,55 +1404,62 @@ function openMatchForm() {
         You can adjust it before saving.
       </p>
 
+
       <div class="modal-actions">
 
         <button
           type="button"
           class="secondary"
-          onclick="closeModal()">
+          onclick="closeModal()"
+        >
           Cancel
         </button>
 
+
         <button
-          class="primary">
+          class="primary"
+        >
           Save Match
         </button>
 
       </div>
 
     </form>
+
   `);
 
 
   /*
-     Automatically calculate collection.
-  */
-  $("mfPlayers").addEventListener(
-    "input",
+   * Automatically calculate collection.
+   */
+  const updateCollected =
     () => {
 
       $("mfCollected").value =
         (
-          Number($("mfPlayers").value) *
-          Number($("mfRate").value)
+          Number(
+            $("mfPlayers").value
+          ) *
+          Number(
+            $("mfRate").value
+          )
         ).toFixed(2);
 
-    }
-  );
+    };
 
 
-  $("mfRate").addEventListener(
-    "input",
-    () => {
+  $("mfPlayers")
+    ?.addEventListener(
+      "input",
+      updateCollected
+    );
 
-      $("mfCollected").value =
-        (
-          Number($("mfPlayers").value) *
-          Number($("mfRate").value)
-        ).toFixed(2);
 
-    }
-  );
+  $("mfRate")
+    ?.addEventListener(
+      "input",
+      updateCollected
+    );
 
 
   $("matchForm").onsubmit =
@@ -1508,43 +1468,49 @@ function openMatchForm() {
 
 
 /* ============================================================
-   17. SAVE MATCH
-   ============================================================ */
-
+   23. SAVE MATCH
+============================================================ */
 
 async function saveMatch(ev) {
 
   ev.preventDefault();
 
 
-  /*
-     Build database row.
-  */
   const row = {
 
     match_number:
-      Number($("mfNum").value),
+      Number(
+        $("mfNum").value
+      ),
 
     match_date:
       $("mfDate").value,
 
     players:
-      Number($("mfPlayers").value),
+      Number(
+        $("mfPlayers").value
+      ),
 
     collection_per_player:
-      Number($("mfRate").value),
+      Number(
+        $("mfRate").value
+      ),
 
     total_collected:
-      Number($("mfCollected").value),
+      Number(
+        $("mfCollected").value
+      ),
 
     notes:
-      $("mfNotes").value || null
+      $("mfNotes").value ||
+      null
+
   };
 
 
   /*
-     Insert match into database.
-  */
+   * Insert match.
+   */
   const m =
     await requireOk(
       await sb
@@ -1556,18 +1522,17 @@ async function saveMatch(ev) {
 
 
   /*
-     Find member receiving the collection.
-  */
+   * Record who received the collection.
+   */
   const receiver =
     $("mfReceiver").value;
 
 
-  /*
-     Add collection to cash ledger.
-  */
   if (
     receiver &&
-    Number(m.total_collected) > 0
+    Number(
+      m.total_collected
+    ) > 0
   ) {
 
     await requireOk(
@@ -1582,7 +1547,9 @@ async function saveMatch(ev) {
             "match_collection",
 
           amount:
-            Number(m.total_collected),
+            Number(
+              m.total_collected
+            ),
 
           to_member_id:
             receiver,
@@ -1592,8 +1559,10 @@ async function saveMatch(ev) {
 
           description:
             `Match #${m.match_number} collection`
+
         })
     );
+
   }
 
 
@@ -1603,28 +1572,41 @@ async function saveMatch(ev) {
     "Match added successfully"
   );
 
-
-  /*
-     Refresh data from Supabase.
-  */
   await loadData();
 }
 
 
 /* ============================================================
-   18. MEMBER OPTIONS
-   ============================================================ */
+   24. MEMBER OPTIONS
+============================================================ */
 
 
 /*
-   Generate <option> elements for member dropdowns.
-*/
+ * Generate options for active members.
+ *
+ * This is used in:
+ * - Match collection receiver
+ * - Cash transfer From
+ * - Cash transfer To
+ * - Expense Paid by
+ */
 function memberOptions() {
+
+  if (!state.members.length) {
+
+    return `
+      <option value="">
+        No active members
+      </option>
+    `;
+
+  }
+
 
   return state.members
     .map(
       m =>
-        `<option value="${m.id}">
+        `<option value="${esc(m.id)}">
           ${esc(m.name)}
         </option>`
     )
@@ -1633,9 +1615,293 @@ function memberOptions() {
 
 
 /* ============================================================
-   19. CASH PAGE
-   ============================================================ */
+   25. ADD MEMBER
+============================================================ */
 
+
+/*
+ * Open Add Member form.
+ *
+ * New members are stored in the existing
+ * public.members table.
+ *
+ * No cash transaction is created here.
+ * Therefore the new member automatically starts
+ * with QAR 0.
+ */
+function openAddMemberForm() {
+
+  openModal(`
+
+    <h3>
+      Add Member
+    </h3>
+
+    <p class="muted">
+      Add a new person who can hold or receive
+      football group cash.
+    </p>
+
+
+    <form id="memberForm">
+
+      <div class="form-grid">
+
+        <label class="full-row">
+
+          Member name
+
+          <input
+            id="memberName"
+            type="text"
+            maxlength="100"
+            placeholder="Enter member name"
+            autocomplete="off"
+            required
+          >
+
+        </label>
+
+      </div>
+
+
+      <p class="small muted">
+        The new member will start with
+        QAR 0 cash.
+      </p>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="submit"
+          class="primary"
+        >
+          Add Member
+        </button>
+
+      </div>
+
+    </form>
+
+  `);
+
+
+  $("memberForm").onsubmit =
+    saveMember;
+
+
+  /*
+   * Automatically focus the name field.
+   */
+  setTimeout(
+    () => $("memberName")?.focus(),
+    50
+  );
+}
+
+
+/*
+ * Save a new member.
+ */
+async function saveMember(ev) {
+
+  ev.preventDefault();
+
+
+  const name =
+    $("memberName")
+      ?.value
+      ?.trim();
+
+
+  /*
+   * Validate name.
+   */
+  if (!name) {
+
+    toast(
+      "Enter a member name."
+    );
+
+    return;
+  }
+
+
+  /*
+   * Check against currently loaded members.
+   *
+   * The database also has a UNIQUE constraint on name,
+   * so this is only a friendly first check.
+   */
+  const duplicate =
+    state.members.some(
+      m =>
+        m.name.trim().toLowerCase() ===
+        name.toLowerCase()
+    );
+
+
+  if (duplicate) {
+
+    toast(
+      "This member already exists."
+    );
+
+    return;
+  }
+
+
+  try {
+
+    /*
+     * Insert new active member.
+     *
+     * No cash transaction is inserted.
+     * Therefore the starting cash is QAR 0.
+     */
+    await requireOk(
+      await sb
+        .from("members")
+        .insert({
+          name,
+          active: true
+        })
+    );
+
+
+    closeModal();
+
+    toast(
+      `${name} added successfully`
+    );
+
+
+    /*
+     * Reload members and all finance data.
+     */
+    await loadData();
+
+    /*
+     * Return to Cash page so the newly added
+     * member is immediately visible.
+     */
+    switchPage("cash");
+
+  } catch (error) {
+
+    /*
+     * PostgreSQL UNIQUE constraint may catch a duplicate
+     * that was added by another user at the same time.
+     */
+    if (
+      String(
+        error?.message || ""
+      ).toLowerCase().includes(
+        "duplicate"
+      )
+    ) {
+
+      toast(
+        "A member with this name already exists."
+      );
+
+    } else {
+
+      console.error(
+        "Add member error:",
+        error
+      );
+
+    }
+
+  }
+}
+
+
+/* ============================================================
+   26. DEACTIVATE MEMBER
+============================================================ */
+
+
+/*
+ * Deactivate a member instead of deleting them.
+ *
+ * IMPORTANT:
+ * We do NOT delete the member because historical
+ * cash transactions and expenses may reference them.
+ *
+ * Their old transactions remain in the database.
+ * They simply disappear from the active member list.
+ */
+async function deactivateMember(id) {
+
+  const member =
+    state.members.find(
+      m => m.id === id
+    );
+
+
+  if (!member)
+    return;
+
+
+  /*
+   * Prevent accidental removal.
+   */
+  const confirmed =
+    confirm(
+      `Remove ${member.name} from the active member list?\n\n` +
+      `Their historical transactions will be preserved.`
+    );
+
+
+  if (!confirmed)
+    return;
+
+
+  try {
+
+    await requireOk(
+      await sb
+        .from("members")
+        .update({
+          active: false
+        })
+        .eq("id", id)
+    );
+
+
+    toast(
+      `${member.name} removed from active members`
+    );
+
+
+    await loadData();
+
+  } catch (error) {
+
+    console.error(
+      "Deactivate member error:",
+      error
+    );
+
+  }
+}
+
+
+/* ============================================================
+   27. CASH PAGE
+============================================================ */
 
 function renderCash() {
 
@@ -1644,43 +1910,61 @@ function renderCash() {
 
 
   /*
-     Member cash cards.
-  */
-  $("cashPeople").innerHTML =
-    people
-      .map(
-        p =>
-          `
-          <div class="cash-card">
+   * Render active cash holders.
+   */
+  if ($("cashPeople")) {
 
-            <div class="person">
-              ${esc(p.name)}
+    $("cashPeople").innerHTML =
+      people
+        .map(
+          p =>
+            `
+            <div class="cash-card">
+
+              <div class="person">
+                ${esc(p.name)}
+              </div>
+
+              <div class="amount">
+                ${money(p.balance)}
+              </div>
+
+              <div class="match-meta">
+                Current ledger balance
+              </div>
+
+              <button
+                class="text-btn"
+                style="margin-top:10px"
+                onclick='deactivateMember(${JSON.stringify(p.id)})'
+              >
+                Remove
+              </button>
+
             </div>
+            `
+        )
+        .join("") ||
+      empty("No members");
 
-            <div class="amount">
-              ${money(p.balance)}
-            </div>
-
-            <div class="match-meta">
-              Current ledger balance
-            </div>
-
-          </div>
-          `
-      )
-      .join("") ||
-    empty("No members");
+  }
 
 
   /*
-     Cash transaction table.
-  */
+   * Render cash ledger.
+   */
+  if (!$("cashLedger"))
+    return;
+
+
   $("cashLedger").innerHTML =
     state.ledger.length
+
       ? `
         <table class="data-table">
 
           <thead>
+
             <tr>
               <th>Date</th>
               <th>Type</th>
@@ -1689,65 +1973,72 @@ function renderCash() {
               <th>To</th>
               <th>Description</th>
             </tr>
+
           </thead>
+
 
           <tbody>
 
-            ${state.ledger.map(
-              t =>
-                `
-                <tr>
+            ${state.ledger
+              .map(
+                t =>
+                  `
+                  <tr>
 
-                  <td>
-                    ${dateText(
-                      t.transaction_date
-                    )}
-                  </td>
-
-                  <td>
-                    <span class="pill">
-                      ${esc(
-                        t.type.replaceAll(
-                          "_",
-                          " "
-                        )
+                    <td>
+                      ${dateText(
+                        t.transaction_date
                       )}
-                    </span>
-                  </td>
+                    </td>
 
-                  <td>
-                    ${money(t.amount)}
-                  </td>
+                    <td>
+                      <span class="pill">
+                        ${esc(
+                          String(
+                            t.type || ""
+                          ).replaceAll(
+                            "_",
+                            " "
+                          )
+                        )}
+                      </span>
+                    </td>
 
-                  <td>
-                    ${esc(
-                      t.from_member?.name ||
-                      "—"
-                    )}
-                  </td>
+                    <td>
+                      ${money(t.amount)}
+                    </td>
 
-                  <td>
-                    ${esc(
-                      t.to_member?.name ||
-                      "—"
-                    )}
-                  </td>
+                    <td>
+                      ${esc(
+                        t.from_member?.name ||
+                        "—"
+                      )}
+                    </td>
 
-                  <td>
-                    ${esc(
-                      t.description ||
-                      "—"
-                    )}
-                  </td>
+                    <td>
+                      ${esc(
+                        t.to_member?.name ||
+                        "—"
+                      )}
+                    </td>
 
-                </tr>
-                `
-            ).join("")}
+                    <td>
+                      ${esc(
+                        t.description ||
+                        "—"
+                      )}
+                    </td>
+
+                  </tr>
+                  `
+              )
+              .join("")}
 
           </tbody>
 
         </table>
       `
+
       : empty(
           "No cash transactions yet."
         );
@@ -1755,15 +2046,11 @@ function renderCash() {
 
 
 /* ============================================================
-   20. CASH TRANSFER FORM
-   ============================================================ */
-
+   28. CASH TRANSFER FORM
+============================================================ */
 
 function openTransferForm() {
 
-  /*
-     At least two members are required.
-  */
   if (state.members.length < 2) {
 
     toast(
@@ -1776,7 +2063,10 @@ function openTransferForm() {
 
   openModal(`
 
-    <h3>Transfer Cash</h3>
+    <h3>
+      Transfer Cash
+    </h3>
+
 
     <form id="transferForm">
 
@@ -1784,20 +2074,25 @@ function openTransferForm() {
 
         <label>
           From
+
           <select id="tfFrom">
             ${memberOptions()}
           </select>
         </label>
 
+
         <label>
           To
+
           <select id="tfTo">
             ${memberOptions()}
           </select>
         </label>
 
+
         <label>
           Amount (QAR)
+
           <input
             id="tfAmount"
             type="number"
@@ -1807,8 +2102,10 @@ function openTransferForm() {
           >
         </label>
 
+
         <label>
           Date
+
           <input
             id="tfDate"
             type="date"
@@ -1817,32 +2114,42 @@ function openTransferForm() {
           >
         </label>
 
+
         <label class="full-row">
+
           Reason
+
           <input
             id="tfReason"
             placeholder="Cash handover"
           >
+
         </label>
 
       </div>
+
 
       <div class="modal-actions">
 
         <button
           type="button"
           class="secondary"
-          onclick="closeModal()">
+          onclick="closeModal()"
+        >
           Cancel
         </button>
 
-        <button class="primary">
+
+        <button
+          class="primary"
+        >
           Transfer
         </button>
 
       </div>
 
     </form>
+
   `);
 
 
@@ -1852,9 +2159,8 @@ function openTransferForm() {
 
 
 /* ============================================================
-   21. SAVE CASH TRANSFER
-   ============================================================ */
-
+   29. SAVE CASH TRANSFER
+============================================================ */
 
 async function saveTransfer(ev) {
 
@@ -1868,12 +2174,30 @@ async function saveTransfer(ev) {
     $("tfTo").value;
 
   const amount =
-    Number($("tfAmount").value);
+    Number(
+      $("tfAmount").value
+    );
 
 
   /*
-     Sender and receiver cannot be same person.
-  */
+   * Validate amount.
+   */
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+
+    toast(
+      "Enter a valid amount."
+    );
+
+    return;
+  }
+
+
+  /*
+   * Sender and receiver cannot be the same.
+   */
   if (from === to) {
 
     toast(
@@ -1885,18 +2209,14 @@ async function saveTransfer(ev) {
 
 
   /*
-     Find sender's current balance.
-  */
+   * Check available balance.
+   */
   const holder =
-    cashByMember()
-      .find(
-        x => x.id === from
-      );
+    cashByMember().find(
+      x => x.id === from
+    );
 
 
-  /*
-     Prevent transfer greater than available cash.
-  */
   if (
     !holder ||
     holder.balance < amount
@@ -1911,8 +2231,8 @@ async function saveTransfer(ev) {
 
 
   /*
-     Insert transfer into ledger.
-  */
+   * Insert transfer into ledger.
+   */
   await requireOk(
     await sb
       .from("cash_transactions")
@@ -1935,6 +2255,7 @@ async function saveTransfer(ev) {
         description:
           $("tfReason").value ||
           "Cash transfer"
+
       })
   );
 
@@ -1945,46 +2266,48 @@ async function saveTransfer(ev) {
     "Cash transferred"
   );
 
-
   await loadData();
 }
 
 
 /* ============================================================
-   22. EXPENSES PAGE
-   ============================================================ */
-
+   30. EXPENSES PAGE
+============================================================ */
 
 function renderExpenses() {
 
   const q =
-    ($("expenseSearch")?.value || "")
-      .toLowerCase();
+    (
+      $("expenseSearch")
+        ?.value || ""
+    ).toLowerCase();
 
 
-  /*
-     Filter expenses based on search text.
-  */
   const rows =
     state.expenses.filter(
       e =>
-        `${e.category}
-         ${e.description || ""}
-         ${e.members?.name || ""}`
+        `${e.category} ${
+          e.description || ""
+        } ${
+          e.members?.name || ""
+        }`
           .toLowerCase()
           .includes(q)
     );
 
 
-  /*
-     Create expense table.
-  */
+  if (!$("expensesTable"))
+    return;
+
+
   $("expensesTable").innerHTML =
     rows.length
+
       ? `
         <table class="data-table">
 
           <thead>
+
             <tr>
               <th>Date</th>
               <th>Match</th>
@@ -1993,64 +2316,72 @@ function renderExpenses() {
               <th>Paid by</th>
               <th>Note</th>
             </tr>
+
           </thead>
+
 
           <tbody>
 
-            ${rows.map(
-              e =>
-                `
-                <tr>
+            ${rows
+              .map(
+                e =>
+                  `
+                  <tr>
 
-                  <td>
-                    ${dateText(
-                      e.expense_date
-                    )}
-                  </td>
+                    <td>
+                      ${dateText(
+                        e.expense_date
+                      )}
+                    </td>
 
-                  <td>
-                    #${
-                      state.matches.find(
-                        m =>
-                          m.id ===
-                          e.match_id
-                      )?.match_number ||
-                      "—"
-                    }
-                  </td>
+                    <td>
+                      #${
+                        state.matches.find(
+                          m =>
+                            m.id ===
+                            e.match_id
+                        )
+                          ?.match_number ||
+                        "—"
+                      }
+                    </td>
 
-                  <td>
-                    <span class="pill">
-                      ${esc(e.category)}
-                    </span>
-                  </td>
+                    <td>
+                      <span class="pill">
+                        ${esc(
+                          e.category
+                        )}
+                      </span>
+                    </td>
 
-                  <td>
-                    ${money(e.amount)}
-                  </td>
+                    <td>
+                      ${money(e.amount)}
+                    </td>
 
-                  <td>
-                    ${esc(
-                      e.members?.name ||
-                      "—"
-                    )}
-                  </td>
+                    <td>
+                      ${esc(
+                        e.members?.name ||
+                        "—"
+                      )}
+                    </td>
 
-                  <td>
-                    ${esc(
-                      e.description ||
-                      "—"
-                    )}
-                  </td>
+                    <td>
+                      ${esc(
+                        e.description ||
+                        "—"
+                      )}
+                    </td>
 
-                </tr>
-                `
-            ).join("")}
+                  </tr>
+                  `
+              )
+              .join("")}
 
           </tbody>
 
         </table>
       `
+
       : empty(
           "No expenses found."
         );
@@ -2058,16 +2389,11 @@ function renderExpenses() {
 
 
 /* ============================================================
-   23. ADD EXPENSE FORM
-   ============================================================ */
-
+   31. ADD EXPENSE FORM
+============================================================ */
 
 function openExpenseForm() {
 
-  /*
-     A member and match are required before
-     an expense can be recorded.
-  */
   if (
     !state.members.length ||
     !state.matches.length
@@ -2083,7 +2409,10 @@ function openExpenseForm() {
 
   openModal(`
 
-    <h3>Add Expense</h3>
+    <h3>
+      Add Expense
+    </h3>
+
 
     <form id="expenseForm">
 
@@ -2091,6 +2420,7 @@ function openExpenseForm() {
 
         <label>
           Date
+
           <input
             id="efDate"
             type="date"
@@ -2098,6 +2428,7 @@ function openExpenseForm() {
             required
           >
         </label>
+
 
         <label>
           Match
@@ -2108,14 +2439,14 @@ function openExpenseForm() {
               state.matches
                 .slice()
                 .sort(
-                  (a, b) =>
+                  (a,b) =>
                     b.match_number -
                     a.match_number
                 )
                 .map(
                   m =>
                     `
-                    <option value="${m.id}">
+                    <option value="${esc(m.id)}">
                       #${m.match_number}
                       —
                       ${dateText(
@@ -2131,18 +2462,36 @@ function openExpenseForm() {
 
         </label>
 
+
         <label>
           Category
 
           <select id="efCat">
-            <option>Ground</option>
-            <option>Water</option>
-            <option>Equipment</option>
-            <option>Food</option>
-            <option>Other</option>
+
+            <option>
+              Ground
+            </option>
+
+            <option>
+              Water
+            </option>
+
+            <option>
+              Equipment
+            </option>
+
+            <option>
+              Food
+            </option>
+
+            <option>
+              Other
+            </option>
+
           </select>
 
         </label>
+
 
         <label>
           Amount (QAR)
@@ -2157,6 +2506,7 @@ function openExpenseForm() {
 
         </label>
 
+
         <label>
           Paid by
 
@@ -2166,7 +2516,9 @@ function openExpenseForm() {
 
         </label>
 
+
         <label class="full-row">
+
           Note
 
           <input
@@ -2178,14 +2530,17 @@ function openExpenseForm() {
 
       </div>
 
+
       <div class="modal-actions">
 
         <button
           type="button"
           class="secondary"
-          onclick="closeModal()">
+          onclick="closeModal()"
+        >
           Cancel
         </button>
+
 
         <button class="primary">
           Save Expense
@@ -2194,6 +2549,7 @@ function openExpenseForm() {
       </div>
 
     </form>
+
   `);
 
 
@@ -2203,9 +2559,8 @@ function openExpenseForm() {
 
 
 /* ============================================================
-   24. SAVE EXPENSE
-   ============================================================ */
-
+   32. SAVE EXPENSE
+============================================================ */
 
 async function saveExpense(ev) {
 
@@ -2220,9 +2575,35 @@ async function saveExpense(ev) {
     );
 
 
-  /*
-     Create expense record.
-  */
+  if (!match) {
+
+    toast(
+      "Please select a valid match."
+    );
+
+    return;
+  }
+
+
+  const amount =
+    Number(
+      $("efAmount").value
+    );
+
+
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+
+    toast(
+      "Enter a valid expense amount."
+    );
+
+    return;
+  }
+
+
   const row = {
 
     expense_date:
@@ -2234,8 +2615,7 @@ async function saveExpense(ev) {
     category:
       $("efCat").value,
 
-    amount:
-      Number($("efAmount").value),
+    amount,
 
     paid_by:
       $("efPaid").value,
@@ -2243,12 +2623,13 @@ async function saveExpense(ev) {
     description:
       $("efNote").value ||
       null
+
   };
 
 
   /*
-     Save expense to expenses table.
-  */
+   * Save expense.
+   */
   await requireOk(
     await sb
       .from("expenses")
@@ -2257,11 +2638,8 @@ async function saveExpense(ev) {
 
 
   /*
-     Also create a cash transaction.
-
-     Because the selected member paid the expense,
-     money leaves that member's cash balance.
-  */
+   * Record cash payment in ledger.
+   */
   await requireOk(
     await sb
       .from("cash_transactions")
@@ -2284,6 +2662,7 @@ async function saveExpense(ev) {
 
         description:
           `${row.category} — Match #${match.match_number}`
+
       })
   );
 
@@ -2294,15 +2673,13 @@ async function saveExpense(ev) {
     "Expense recorded"
   );
 
-
   await loadData();
 }
 
 
 /* ============================================================
-   25. REPORTS
-   ============================================================ */
-
+   33. REPORTS
+============================================================ */
 
 function renderReports() {
 
@@ -2310,68 +2687,85 @@ function renderReports() {
     totals();
 
 
-  /*
-     Summary report cards.
-  */
-  $("reportCards").innerHTML =
+  if ($("reportCards")) {
 
-    `
-    <div class="stat-card">
-      <span>Matches</span>
-      <strong>
-        ${state.matches.length}
-      </strong>
-    </div>
-    ` +
+    $("reportCards").innerHTML =
 
-    `
-    <div class="stat-card">
-      <span>
-        Players participations
-      </span>
+      `
+      <div class="stat-card">
 
-      <strong>
-        ${
-          state.matches.reduce(
-            (s, m) =>
-              s + Number(m.players),
-            0
-          )
-        }
-      </strong>
-    </div>
-    ` +
+        <span>
+          Matches
+        </span>
 
-    `
-    <div class="stat-card">
-      <span>Total collected</span>
+        <strong>
+          ${state.matches.length}
+        </strong>
 
-      <strong>
-        ${money(t.collected)}
-      </strong>
-    </div>
-    ` +
-
-    `
-    <div class="stat-card">
-      <span>Net balance</span>
-
-      <strong>
-        ${money(t.net)}
-      </strong>
-    </div>
-    `;
+      </div>
 
 
-  /*
-     Match-by-match report table.
-  */
+      <div class="stat-card">
+
+        <span>
+          Players participations
+        </span>
+
+        <strong>
+          ${
+            state.matches.reduce(
+              (s,m) =>
+                s +
+                Number(m.players),
+              0
+            )
+          }
+        </strong>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          Total collected
+        </span>
+
+        <strong>
+          ${money(t.collected)}
+        </strong>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          Net balance
+        </span>
+
+        <strong>
+          ${money(t.net)}
+        </strong>
+
+      </div>
+      `;
+
+  }
+
+
+  if (!$("reportTable"))
+    return;
+
+
   $("reportTable").innerHTML =
     state.matches.length
+
       ? `
         <table class="data-table">
 
           <thead>
+
             <tr>
               <th>Match</th>
               <th>Date</th>
@@ -2380,12 +2774,14 @@ function renderReports() {
               <th>Ground/Other</th>
               <th>Balance</th>
             </tr>
+
           </thead>
+
 
           <tbody>
 
-            ${state.matches.map(
-              m => {
+            ${state.matches
+              .map(m => {
 
                 const ex =
                   state.expenses
@@ -2395,11 +2791,12 @@ function renderReports() {
                         m.id
                     )
                     .reduce(
-                      (s, e) =>
+                      (s,e) =>
                         s +
                         Number(e.amount),
                       0
                     );
+
 
                 const b =
                   Number(
@@ -2434,25 +2831,27 @@ function renderReports() {
                       ${money(ex)}
                     </td>
 
-                    <td class="${
-                      b >= 0
-                        ? "positive"
-                        : "negative"
-                    }">
-
+                    <td
+                      class="${
+                        b >= 0
+                          ? "positive"
+                          : "negative"
+                      }"
+                    >
                       ${money(b)}
-
                     </td>
 
                   </tr>
                 `;
-              }
-            ).join("")}
+
+              })
+              .join("")}
 
           </tbody>
 
         </table>
       `
+
       : empty(
           "No report data."
         );
@@ -2460,9 +2859,8 @@ function renderReports() {
 
 
 /* ============================================================
-   26. PAGE NAVIGATION
-   ============================================================ */
-
+   34. PAGE NAVIGATION
+============================================================ */
 
 function switchPage(
   page,
@@ -2473,29 +2871,33 @@ function switchPage(
 
 
   /*
-     Hide all pages.
-  */
+   * Hide every page.
+   */
   document
     .querySelectorAll(".page")
     .forEach(
       x =>
-        x.classList.add("hidden")
+        x.classList.add(
+          "hidden"
+        )
     );
 
 
   /*
-     Show selected page.
-  */
+   * Show selected page.
+   */
   $(`page-${page}`)
     ?.classList
     .remove("hidden");
 
 
   /*
-     Update navigation buttons.
-  */
+   * Highlight navigation buttons.
+   */
   document
-    .querySelectorAll("[data-page]")
+    .querySelectorAll(
+      "[data-page]"
+    )
     .forEach(
       x =>
         x.classList.toggle(
@@ -2506,41 +2908,52 @@ function switchPage(
 
 
   /*
-     Update page title.
-  */
+   * Update page title.
+   */
   if ($("pageTitle")) {
 
-    $("pageTitle").textContent =
-      page[0].toUpperCase() +
-      page.slice(1);
+    $("pageTitle")
+      .textContent =
+        page
+          .charAt(0)
+          .toUpperCase() +
+        page.slice(1);
+
   }
 
 
   /*
-     Scroll to top when user changes page.
-  */
+   * Scroll to top when navigation changes.
+   */
   if (update) {
 
     window.scrollTo({
       top: 0,
       behavior: "smooth"
     });
+
   }
 }
 
 
 /* ============================================================
-   27. MODAL FUNCTIONS
-   ============================================================ */
+   35. MODAL FUNCTIONS
+============================================================ */
 
-
-/*
-   Open modal window.
-*/
 function openModal(html) {
 
-  $("modalBox").innerHTML =
-    html;
+  if (
+    !$("modal") ||
+    !$("modalBox")
+  ) {
+
+    return;
+  }
+
+
+  $("modalBox")
+    .innerHTML = html;
+
 
   $("modal")
     .classList
@@ -2548,29 +2961,31 @@ function openModal(html) {
 }
 
 
-/*
-   Close modal window.
-*/
 function closeModal() {
+
+  if (
+    !$("modal") ||
+    !$("modalBox")
+  ) {
+
+    return;
+  }
+
 
   $("modal")
     .classList
     .add("hidden");
 
-  $("modalBox").innerHTML = "";
+
+  $("modalBox")
+    .innerHTML = "";
 }
 
 
 /* ============================================================
-   28. LOGIN
-   ============================================================ */
+   36. LOGIN
+============================================================ */
 
-
-/*
-   Login form.
-
-   Supabase checks the email/password combination.
-*/
 $("loginForm")
   ?.addEventListener(
     "submit",
@@ -2579,40 +2994,56 @@ $("loginForm")
       e.preventDefault();
 
 
-      /*
-         Make sure Supabase is available.
-      */
-      if (!sb) return;
+      if (!sb) {
+
+        toast(
+          "Supabase is not configured."
+        );
+
+        return;
+      }
 
 
-      /*
-         Get login credentials.
-      */
       const email =
         $("loginEmail")
-          .value
-          .trim();
+          ?.value
+          ?.trim();
+
 
       const password =
         $("loginPassword")
-          .value;
+          ?.value;
+
+
+      if (
+        !email ||
+        !password
+      ) {
+
+        toast(
+          "Enter your email and password."
+        );
+
+        return;
+      }
 
 
       /*
-         Attempt login.
-      */
-      const {
-        error
-      } =
+       * Sign in using Supabase Auth.
+       */
+      const { error } =
         await sb.auth.signInWithPassword({
+
           email,
+
           password
+
         });
 
 
       /*
-         Display login error.
-      */
+       * Display login error.
+       */
       if (error) {
 
         console.error(
@@ -2623,6 +3054,7 @@ $("loginForm")
         toast(
           error.message
         );
+
       }
 
     }
@@ -2630,35 +3062,37 @@ $("loginForm")
 
 
 /* ============================================================
-   29. LOGOUT
-   ============================================================ */
-
+   37. LOGOUT
+============================================================ */
 
 $("logoutBtn")
   ?.addEventListener(
     "click",
     async () => {
 
-      /*
-         Sign out from Supabase.
-      */
+      if (!sb)
+        return;
+
+
       await sb.auth.signOut();
+
 
       toast(
         "Signed out"
       );
+
     }
   );
 
 
 /* ============================================================
-   30. BUTTON EVENT LISTENERS
-   ============================================================ */
+   38. BUTTON EVENT HANDLERS
+============================================================ */
 
 
 /*
-   Refresh button.
-*/
+ * Refresh data.
+ */
 $("refreshBtn")
   ?.addEventListener(
     "click",
@@ -2667,8 +3101,8 @@ $("refreshBtn")
 
 
 /*
-   Add match button.
-*/
+ * Add Match.
+ */
 $("addMatchBtn")
   ?.addEventListener(
     "click",
@@ -2677,8 +3111,8 @@ $("addMatchBtn")
 
 
 /*
-   Transfer cash button.
-*/
+ * Transfer Cash.
+ */
 $("transferBtn")
   ?.addEventListener(
     "click",
@@ -2687,8 +3121,8 @@ $("transferBtn")
 
 
 /*
-   Add expense button.
-*/
+ * Add Expense.
+ */
 $("addExpenseBtn")
   ?.addEventListener(
     "click",
@@ -2697,8 +3131,8 @@ $("addExpenseBtn")
 
 
 /*
-   Export CSV button.
-*/
+ * Export CSV.
+ */
 $("exportBtn")
   ?.addEventListener(
     "click",
@@ -2707,8 +3141,27 @@ $("exportBtn")
 
 
 /*
-   Match search.
-*/
+ * Add Member.
+ *
+ * IMPORTANT:
+ * This works if your index.html contains:
+ *
+ * <button id="addMemberBtn">+ Add Member</button>
+ *
+ * If the button is not yet in index.html,
+ * nothing breaks.
+ */
+$("addMemberBtn")
+  ?.addEventListener(
+    "click",
+    openAddMemberForm
+  );
+
+
+/* ============================================================
+   39. SEARCH / FILTER EVENTS
+============================================================ */
+
 $("matchSearch")
   ?.addEventListener(
     "input",
@@ -2716,9 +3169,6 @@ $("matchSearch")
   );
 
 
-/*
-   Match filter.
-*/
 $("matchFilter")
   ?.addEventListener(
     "change",
@@ -2726,9 +3176,6 @@ $("matchFilter")
   );
 
 
-/*
-   Expense search.
-*/
 $("expenseSearch")
   ?.addEventListener(
     "input",
@@ -2737,31 +3184,25 @@ $("expenseSearch")
 
 
 /* ============================================================
-   31. PAGE NAVIGATION CLICK HANDLER
-   ============================================================ */
-
+   40. NAVIGATION CLICK HANDLER
+============================================================ */
 
 document.addEventListener(
   "click",
   e => {
 
-    /*
-       Find closest navigation element.
-    */
     const b =
       e.target.closest(
         "[data-page]"
       );
 
 
-    /*
-       Change page if found.
-    */
     if (b) {
 
       switchPage(
         b.dataset.page
       );
+
     }
 
   }
@@ -2769,25 +3210,22 @@ document.addEventListener(
 
 
 /* ============================================================
-   32. CLOSE MODAL WHEN CLICKING BACKDROP
-   ============================================================ */
-
+   41. CLOSE MODAL WHEN BACKDROP IS CLICKED
+============================================================ */
 
 $("modal")
   ?.addEventListener(
     "click",
     e => {
 
-      /*
-         Only close when the actual backdrop
-         is clicked, not the modal content.
-      */
       if (
-        e.target.classList
-          .contains("modal-backdrop")
+        e.target.classList.contains(
+          "modal-backdrop"
+        )
       ) {
 
         closeModal();
+
       }
 
     }
@@ -2795,15 +3233,14 @@ $("modal")
 
 
 /* ============================================================
-   33. EXPORT DATA TO CSV
-   ============================================================ */
-
+   42. EXPORT FINANCE DATA TO CSV
+============================================================ */
 
 function exportCSV() {
 
   /*
-     CSV header row.
-  */
+   * CSV header.
+   */
   const rows = [
     [
       "Match",
@@ -2818,10 +3255,25 @@ function exportCSV() {
 
 
   /*
-     Add every match to CSV.
-  */
+   * Add every match.
+   */
   state.matches.forEach(
     m => {
+
+      const expenses =
+        state.expenses
+          .filter(
+            e =>
+              e.match_id ===
+              m.id
+          )
+          .reduce(
+            (s,e) =>
+              s +
+              Number(e.amount),
+            0
+          );
+
 
       rows.push([
 
@@ -2833,21 +3285,12 @@ function exportCSV() {
 
         m.total_collected,
 
-        state.expenses
-          .filter(
-            e =>
-              e.match_id ===
-              m.id
-          )
-          .reduce(
-            (s, e) =>
-              s + Number(e.amount),
-            0
-          ),
+        expenses,
 
         matchBalance(m),
 
         m.notes || ""
+
       ]);
 
     }
@@ -2855,8 +3298,8 @@ function exportCSV() {
 
 
   /*
-     Convert rows to CSV text.
-  */
+   * Convert rows into CSV text.
+   */
   const csv =
     rows
       .map(
@@ -2876,8 +3319,8 @@ function exportCSV() {
 
 
   /*
-     Create downloadable file.
-  */
+   * Create downloadable file.
+   */
   const blob =
     new Blob(
       [csv],
@@ -2894,13 +3337,11 @@ function exportCSV() {
     );
 
 
-  /*
-     Create temporary download link.
-  */
   const a =
     document.createElement(
       "a"
     );
+
 
   a.href = url;
 
@@ -2908,15 +3349,9 @@ function exportCSV() {
     "qatar-football-finance.csv";
 
 
-  /*
-     Start download.
-  */
   a.click();
 
 
-  /*
-     Release temporary URL.
-  */
   URL.revokeObjectURL(
     url
   );
@@ -2924,7 +3359,12 @@ function exportCSV() {
 
 
 /* ============================================================
-   34. START APPLICATION
-   ============================================================ */
+   43. START APPLICATION
+============================================================ */
 
+/*
+ * Everything above is defined first.
+ *
+ * init() starts the application.
+ */
 init();
