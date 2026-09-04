@@ -1997,3 +1997,128 @@ code {
     font-size: 8px;
   }
 }
+
+
+/* ============================================================
+   FINAL LAYOUT FIX - DESKTOP / TABLET / MOBILE
+   Keep this block at the END of styles.css
+   ============================================================ */
+
+/* Always use natural box sizing for the app shell */
+html,
+body {
+  width: 100%;
+  min-width: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Desktop:
+   Fixed sidebar + main area fills ALL remaining screen width.
+   This overrides the old max-width:1450px rule. */
+@media (min-width: 901px) {
+  .sidebar {
+    display: flex !important;
+    width: 272px !important;
+  }
+
+  .main {
+    width: calc(100% - 272px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin-left: 272px !important;
+    margin-right: 0 !important;
+
+    padding: 30px 36px 50px !important;
+  }
+
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Medium desktop / small laptops */
+@media (min-width: 901px) and (max-width: 1280px) {
+  .main {
+    padding-left: 26px !important;
+    padding-right: 26px !important;
+  }
+}
+
+/* Tablet + mobile:
+   Hide large sidebar and use existing bottom navigation. */
+@media (max-width: 900px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  .main {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+
+    padding:
+      22px
+      15px
+      calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .bottom-nav {
+    display: grid !important;
+  }
+}
+
+/* Phones */
+@media (max-width: 520px) {
+  .main {
+    padding:
+      18px
+      12px
+      calc(90px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .main {
+    padding-left: 9px !important;
+    padding-right: 9px !important;
+  }
+}
+
+/* Prevent wide dashboard/table elements from forcing the whole page
+   outside the viewport. They can scroll inside their own container. */
+.table-wrap,
+.table-scroll,
+.data-table-wrap,
+.responsive-table,
+.card,
+.panel,
+.section-card {
+  max-width: 100%;
+}
+
+/* Keep images/media responsive */
+img,
+svg {
+  max-width: 100%;
+}
+
+/* Sidebar SVG icons must remain outline icons */
+.sidebar .nav-item svg,
+.sidebar .side-switch-btn svg,
+.sidebar .nav-item svg *,
+.sidebar .side-switch-btn svg * {
+  fill: none !important;
+  stroke: currentColor !important;
+}
