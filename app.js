@@ -434,11 +434,11 @@ function switchUser() {
    DESKTOP SIDEBAR FEATURE ROTATOR
    ------------------------------------------------------------
    Put your own images in:
-     assets/sidebar/messi.jpg
-     assets/sidebar/ronaldo.jpg
-     assets/sidebar/neymar.jpg
-     assets/sidebar/yamal.jpg
-     assets/sidebar/chhetri.jpg
+     assets/sidebar/messi.jpeg
+     assets/sidebar/ronaldo.jpeg
+     assets/sidebar/neymar.jpeg
+     assets/sidebar/yamal.jpeg
+     assets/sidebar/chhetri.jpeg
 
    If an image is missing, the app automatically falls back to
    the included stadium artwork.
@@ -452,27 +452,27 @@ const SIDEBAR_FEATURE_INTERVAL = 15000;
 const SIDEBAR_FEATURES = [
   {
     player: "LIONEL MESSI",
-    image: "assets/sidebar/messi.jpg",
+    image: "assets/sidebar/messi.jpeg",
     text: "Small touches. Big moments."
   },
   {
     player: "CRISTIANO RONALDO",
-    image: "assets/sidebar/ronaldo.jpg",
+    image: "assets/sidebar/ronaldo.jpeg",
     text: "Train with purpose. Compete with belief."
   },
   {
     player: "NEYMAR",
-    image: "assets/sidebar/neymar.jpg",
+    image: "assets/sidebar/neymar.jpeg",
     text: "Play with joy. Create with courage."
   },
   {
     player: "LAMINE YAMAL",
-    image: "assets/sidebar/yamal.jpg",
+    image: "assets/sidebar/yamal.jpeg",
     text: "Be brave. Trust your football."
   },
   {
     player: "SUNIL CHHETRI",
-    image: "assets/sidebar/chhetri.jpg",
+    image: "assets/sidebar/chhetri.jpeg",
     text: "Lead with effort. Play for the team."
   }
 ];

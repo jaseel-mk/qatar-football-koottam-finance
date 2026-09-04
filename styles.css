@@ -1900,3 +1900,100 @@ code {
   }
 }
 
+
+
+/* =========================================================
+   FINAL RESPONSIVE SAFETY OVERRIDES
+   Keep these rules at the very end of the stylesheet.
+   They intentionally override the desktop sidebar rules above.
+   ========================================================= */
+
+/* Prevent SVG icon fill conflicts from any existing/global rules */
+.sidebar .nav-item svg,
+.sidebar .side-switch-btn svg {
+  fill: none !important;
+  stroke: currentColor !important;
+  color: inherit;
+}
+
+.sidebar .nav-item svg *,
+.sidebar .side-switch-btn svg * {
+  fill: none !important;
+  stroke: currentColor !important;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Desktop / larger tablets */
+@media (min-width: 901px) {
+  .sidebar {
+    display: flex !important;
+    width: 272px;
+  }
+
+  .main {
+    margin-left: 272px !important;
+  }
+
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Tablets and phones: use the existing bottom navigation instead of
+   squeezing the desktop sidebar into a narrow viewport. */
+@media (max-width: 900px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  .main {
+    margin-left: 0 !important;
+    max-width: none;
+    width: 100%;
+    padding:
+      22px
+      15px
+      calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    display: grid !important;
+  }
+}
+
+/* Narrow phones */
+@media (max-width: 520px) {
+  .main {
+    padding:
+      18px
+      12px
+      calc(90px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    min-height: 66px;
+  }
+
+  .bottom-nav button {
+    min-width: 0;
+    padding-inline: 2px;
+  }
+
+  .bottom-nav span {
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 9px;
+  }
+
+  .bottom-nav span {
+    font-size: 8px;
+  }
+}
