@@ -309,21 +309,133 @@ function updateCurrentUserUI() {
 
   if ($("sidebarUserName")) {
     $("sidebarUserName").textContent =
-      currentUser || "Current user";
+      currentUser || "Select user";
   }
 
   if ($("sidebarUserInitials")) {
-    const initials =
-      (currentUser || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(part => part[0]?.toUpperCase() || "")
-        .join("") || "--";
+    const parts = currentUser
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
 
-    $("sidebarUserInitials").textContent = initials;
+    $("sidebarUserInitials").textContent = parts.length
+      ? `${parts[0][0]}${parts.length > 1 ? parts[parts.length - 1][0] : ""}`.toUpperCase()
+      : "—";
   }
+}
+
+
+/* ============================================================
+   7A. RESPONSIVE SIDEBAR + PLAYER FEATURE
+============================================================ */
+
+const sidebarPlayers = [
+  ["Lionel Messi", "Small touches. Big moments.", "assets/sidebar/messi.jpeg"],
+  ["Cristiano Ronaldo", "Train with purpose. Compete with belief.", "assets/sidebar/ronaldo.jpeg"],
+  ["Neymar", "Play with joy. Create with courage.", "assets/sidebar/neymar.jpeg"],
+  ["Lamine Yamal", "Be brave. Trust your football.", "assets/sidebar/yamal.jpeg"],
+  ["Sunil Chhetri", "Lead with effort. Play for the team.", "assets/sidebar/chhetri.jpeg"]
+];
+
+const SIDEBAR_FALLBACK = "assets/sidebar/stadium-fallback.svg";
+let sidebarPlayerIndex = 0;
+let sidebarPlayerTimer = null;
+
+function setSidebarOpen(open) {
+  const sidebar = $("sidebar");
+  const backdrop = $("sidebarBackdrop");
+  const toggle = $("sidebarToggle");
+  if (!sidebar || !backdrop || !toggle) return;
+
+  sidebar.classList.toggle("is-open", open);
+  backdrop.classList.toggle("is-open", open);
+  document.body.classList.toggle("sidebar-open", open);
+  toggle.setAttribute("aria-expanded", String(open));
+  backdrop.setAttribute("aria-hidden", String(!open));
+
+  if (open) $("sidebarClose")?.focus();
+  else if (document.activeElement === $("sidebarClose")) toggle.focus();
+}
+
+function closeSidebar() {
+  setSidebarOpen(false);
+}
+
+function restartPlayerProgress() {
+  const progress = $("playerProgress");
+  if (!progress) return;
+  progress.classList.remove("is-running");
+  void progress.offsetWidth;
+  if (!document.hidden) progress.classList.add("is-running");
+}
+
+function showSidebarPlayer(index, resetTimer = true) {
+  const feature = document.querySelector(".player-feature");
+  const image = $("sidebarPlayerImage");
+  if (!feature || !image) return;
+
+  sidebarPlayerIndex = (index + sidebarPlayers.length) % sidebarPlayers.length;
+  const [name, caption, src] = sidebarPlayers[sidebarPlayerIndex];
+  feature.classList.add("is-changing");
+
+  window.setTimeout(() => {
+    image.onerror = () => {
+      image.onerror = null;
+      image.src = SIDEBAR_FALLBACK;
+    };
+    image.src = src;
+    image.alt = name;
+    $("sidebarPlayerName").textContent = name;
+    $("sidebarPlayerCaption").textContent = caption;
+    document.querySelectorAll("#playerDots button").forEach((dot, i) => {
+      dot.classList.toggle("active", i === sidebarPlayerIndex);
+      dot.setAttribute("aria-current", i === sidebarPlayerIndex ? "true" : "false");
+    });
+    feature.classList.remove("is-changing");
+  }, 260);
+
+  if (resetTimer) startSidebarPlayerTimer();
+  else restartPlayerProgress();
+}
+
+function startSidebarPlayerTimer() {
+  clearInterval(sidebarPlayerTimer);
+  restartPlayerProgress();
+  if (document.hidden) return;
+  sidebarPlayerTimer = setInterval(
+    () => showSidebarPlayer(sidebarPlayerIndex + 1, false),
+    15000
+  );
+}
+
+function initSidebarExperience() {
+  const dots = $("playerDots");
+  if (dots) {
+    sidebarPlayers.forEach(([name], index) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.setAttribute("aria-label", `Show ${name}`);
+      dot.addEventListener("click", () => showSidebarPlayer(index));
+      dots.appendChild(dot);
+    });
+  }
+
+  $("sidebarToggle")?.addEventListener("click", () => setSidebarOpen(true));
+  $("sidebarClose")?.addEventListener("click", closeSidebar);
+  $("sidebarBackdrop")?.addEventListener("click", closeSidebar);
+  $("playerPrev")?.addEventListener("click", () => showSidebarPlayer(sidebarPlayerIndex - 1));
+  $("playerNext")?.addEventListener("click", () => showSidebarPlayer(sidebarPlayerIndex + 1));
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeSidebar();
+  });
+
+  document.addEventListener("visibilitychange", startSidebarPlayerTimer);
+  window.matchMedia("(min-width: 851px)").addEventListener("change", e => {
+    if (e.matches) closeSidebar();
+  });
+
+  showSidebarPlayer(0);
 }
 
 async function saveIdentity(ev) {
@@ -428,266 +540,11 @@ function switchUser() {
 }
 
 
-
-
-/* ============================================================
-   DESKTOP SIDEBAR FEATURE ROTATOR
-   ------------------------------------------------------------
-   Put your own images in:
-     assets/sidebar/messi.jpeg
-     assets/sidebar/ronaldo.jpeg
-     assets/sidebar/neymar.jpeg
-     assets/sidebar/yamal.jpeg
-     assets/sidebar/chhetri.jpeg
-
-   If an image is missing, the app automatically falls back to
-   the included stadium artwork.
-
-   The captions below are original QFK motivational lines,
-   not quotations attributed to the players.
-============================================================ */
-
-const SIDEBAR_FEATURE_INTERVAL = 15000;
-
-const SIDEBAR_FEATURES = [
-  {
-    player: "LIONEL MESSI",
-    image: "assets/sidebar/messi.jpeg",
-    text: "Small touches. Big moments."
-  },
-  {
-    player: "CRISTIANO RONALDO",
-    image: "assets/sidebar/ronaldo.jpeg",
-    text: "Train with purpose. Compete with belief."
-  },
-  {
-    player: "NEYMAR",
-    image: "assets/sidebar/neymar.jpeg",
-    text: "Play with joy. Create with courage."
-  },
-  {
-    player: "LAMINE YAMAL",
-    image: "assets/sidebar/yamal.jpeg",
-    text: "Be brave. Trust your football."
-  },
-  {
-    player: "SUNIL CHHETRI",
-    image: "assets/sidebar/chhetri.jpeg",
-    text: "Lead with effort. Play for the team."
-  }
-];
-
-let sidebarFeatureIndex =
-  Math.floor(Math.random() * SIDEBAR_FEATURES.length);
-
-let sidebarFeatureTimer = null;
-let sidebarFeatureRaf = null;
-let sidebarFeatureStartedAt = 0;
-
-function buildSidebarFeatureDots() {
-  const dots = $("sideFeatureDots");
-  if (!dots) return;
-
-  dots.innerHTML =
-    SIDEBAR_FEATURES
-      .map(
-        (_, index) =>
-          `<button
-            type="button"
-            class="side-feature-dot"
-            data-feature-index="${index}"
-            aria-label="Show football image ${index + 1}"
-          ></button>`
-      )
-      .join("");
-
-  dots
-    .querySelectorAll(".side-feature-dot")
-    .forEach(dot => {
-      dot.addEventListener(
-        "click",
-        () => {
-          sidebarFeatureIndex =
-            Number(dot.dataset.featureIndex);
-
-          renderSidebarFeature();
-          restartSidebarFeatureTimer();
-        }
-      );
-    });
-}
-
-function renderSidebarFeature() {
-  const feature = $("sideFeature");
-  const image = $("sideFeatureImage");
-  const player = $("sideFeaturePlayer");
-  const text = $("sideFeatureText");
-  const dots = $("sideFeatureDots");
-
-  if (!feature || !image || !player || !text) {
-    return;
-  }
-
-  const item =
-    SIDEBAR_FEATURES[sidebarFeatureIndex];
-
-  feature.classList.remove("is-visible");
-
-  window.setTimeout(() => {
-    image.onerror = () => {
-      image.onerror = null;
-      image.src =
-        "assets/sidebar/stadium-fallback.svg";
-    };
-
-    image.src = item.image;
-    image.alt = `${item.player} football feature`;
-    player.textContent = item.player;
-    text.textContent = item.text;
-
-    dots
-      ?.querySelectorAll(".side-feature-dot")
-      .forEach(
-        (dot, index) =>
-          dot.classList.toggle(
-            "active",
-            index === sidebarFeatureIndex
-          )
-      );
-
-    requestAnimationFrame(
-      () =>
-        feature.classList.add("is-visible")
-    );
-  }, 240);
-}
-
-function animateSidebarFeatureProgress() {
-  cancelAnimationFrame(sidebarFeatureRaf);
-
-  const progress =
-    $("sideFeatureProgress");
-
-  if (!progress) return;
-
-  const draw = () => {
-    const elapsed =
-      Date.now() - sidebarFeatureStartedAt;
-
-    const percentage =
-      Math.min(
-        100,
-        elapsed /
-          SIDEBAR_FEATURE_INTERVAL *
-          100
-      );
-
-    progress.style.width =
-      `${percentage}%`;
-
-    if (percentage < 100) {
-      sidebarFeatureRaf =
-        requestAnimationFrame(draw);
-    }
-  };
-
-  draw();
-}
-
-function restartSidebarFeatureTimer() {
-  clearInterval(sidebarFeatureTimer);
-  cancelAnimationFrame(sidebarFeatureRaf);
-
-  sidebarFeatureStartedAt =
-    Date.now();
-
-  if ($("sideFeatureProgress")) {
-    $("sideFeatureProgress").style.width =
-      "0%";
-  }
-
-  animateSidebarFeatureProgress();
-
-  sidebarFeatureTimer =
-    setInterval(
-      () => {
-        sidebarFeatureIndex =
-          (
-            sidebarFeatureIndex + 1
-          ) %
-          SIDEBAR_FEATURES.length;
-
-        renderSidebarFeature();
-
-        sidebarFeatureStartedAt =
-          Date.now();
-
-        animateSidebarFeatureProgress();
-      },
-      SIDEBAR_FEATURE_INTERVAL
-    );
-}
-
-function initSidebarFeature() {
-  if (!$("sideFeature")) return;
-
-  buildSidebarFeatureDots();
-  renderSidebarFeature();
-  restartSidebarFeatureTimer();
-
-  $("sideFeatureNext")
-    ?.addEventListener(
-      "click",
-      () => {
-        sidebarFeatureIndex =
-          (
-            sidebarFeatureIndex + 1
-          ) %
-          SIDEBAR_FEATURES.length;
-
-        renderSidebarFeature();
-        restartSidebarFeatureTimer();
-      }
-    );
-
-  $("sideFeaturePrev")
-    ?.addEventListener(
-      "click",
-      () => {
-        sidebarFeatureIndex =
-          (
-            sidebarFeatureIndex -
-            1 +
-            SIDEBAR_FEATURES.length
-          ) %
-          SIDEBAR_FEATURES.length;
-
-        renderSidebarFeature();
-        restartSidebarFeatureTimer();
-      }
-    );
-
-  document.addEventListener(
-    "visibilitychange",
-    () => {
-      if (document.hidden) {
-        clearInterval(sidebarFeatureTimer);
-        cancelAnimationFrame(sidebarFeatureRaf);
-      } else {
-        restartSidebarFeatureTimer();
-      }
-    }
-  );
-}
-
-
 /* ============================================================
    8. INITIALIZATION
 ============================================================ */
 
 async function init() {
-
-  initSidebarFeature();
 
   if (!configured) {
     $("configWarning")
@@ -4779,6 +4636,8 @@ document.addEventListener(
         b.dataset.page
       );
 
+      closeSidebar();
+
     }
 
   }
@@ -4964,4 +4823,5 @@ function exportCSV() {
    49. START APPLICATION
 ============================================================ */
 
+initSidebarExperience();
 init();
