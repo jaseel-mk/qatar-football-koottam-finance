@@ -354,29 +354,6 @@ textarea::placeholder {
   background: var(--maroon-soft);
 }
 
-.logout {
-  margin-top: auto;
-
-  padding: 13px;
-
-  background: transparent;
-  color: #ead9df;
-
-  text-align: left;
-
-  border-radius: 11px;
-
-  font-weight: 700;
-
-  transition: 0.2s ease;
-}
-
-.logout:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--white);
-}
-
-
 /* =========================================================
    6. WARNING / NOTICE
    ========================================================= */
@@ -416,85 +393,135 @@ code {
 
 .sidebar {
   position: fixed;
-
   top: 0;
   bottom: 0;
   left: 0;
+  z-index: 40;
+  width: 272px;
+  overflow: hidden;
+  background: radial-gradient(circle at 10% 12%, rgba(214,178,91,.11), transparent 25%), linear-gradient(165deg, #76112f 0%, #57091f 54%, #360513 100%);
+  color: var(--white);
+  box-shadow: 12px 0 36px rgba(54,5,19,.12);
+}
 
-  z-index: 10;
-
-  width: 245px;
-
-  padding: 26px 16px;
-
+.sidebar-inner {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.2) transparent;
   display: flex;
   flex-direction: column;
-
-  background:
-    linear-gradient(
-      180deg,
-      var(--maroon),
-      var(--maroon-dark)
-    );
-
-  color: var(--white);
+  padding: max(22px, env(safe-area-inset-top)) 18px max(14px, env(safe-area-inset-bottom));
 }
 
 .side-brand {
   display: flex;
   align-items: center;
-
-  gap: 12px;
-
-  padding: 5px 10px 30px;
+  gap: 11px;
+  padding: 2px 5px 19px;
 }
 
-.side-brand span {
-  font-size: 27px;
+.side-crest {
+  width: 43px;
+  height: 49px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #dfbf72;
+  border: 1px solid rgba(223,191,114,.5);
+  border-radius: 13px 13px 17px 17px;
+  background: rgba(255,255,255,.055);
 }
 
-.side-brand strong,
-.side-brand small {
+.side-crest svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+.side-brand-copy { min-width: 0; }
+.side-brand strong, .side-brand small {
   display: block;
 }
 
 .side-brand strong {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
+.side-brand strong em { color: #dfbf72; font-style: normal; }
 .side-brand small {
-  margin-top: 4px;
-
-  opacity: 0.65;
-
-  font-size: 11px;
+  margin-top: 5px;
+  color: rgba(255,255,255,.55);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
+.side-brand small i { display: inline-block; width: 3px; height: 3px; margin: 0 4px 2px; border-radius: 50%; background: #dfbf72; }
+.sidebar-close { display: none; width: 44px; height: 44px; margin-left: auto; place-items: center; color: #fff; background: rgba(255,255,255,.08); border-radius: 11px; }
 
 .sidebar nav {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .nav-item {
-  padding: 13px;
-
+  position: relative;
+  min-height: 46px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
   background: transparent;
-  color: #ead9df;
-
+  color: rgba(255,255,255,.72);
   text-align: left;
-
-  border-radius: 11px;
-
-  font-weight: 700;
-
-  transition: 0.2s ease;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 650;
+  transition: background 180ms ease, color 180ms ease;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--white);
-}
+.sidebar .nav-item svg, .sidebar button svg, .sidebar-toggle svg, .bottom-nav svg { width: 21px; height: 21px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav-item:hover { background: rgba(255,255,255,.065); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,.105); color: #fff; }
+.nav-item.active::before { content: ""; position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; border-radius: 2px; background: #dfbf72; box-shadow: 0 0 10px rgba(223,191,114,.5); }
+.nav-item.active svg { color: #ebce88; }
+
+.player-feature { position: relative; min-height: 202px; margin: 13px -18px 9px; overflow: hidden; isolation: isolate; }
+.player-feature img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; filter: saturate(.72) contrast(1.05); opacity: .76; transform: scale(1.025); transition: opacity 450ms ease, transform 700ms ease; }
+.player-feature.is-changing img { opacity: 0; transform: scale(1); }
+.player-shade { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg,#57091f 0%,transparent 22%,transparent 53%,#430617 100%), linear-gradient(90deg,rgba(73,6,25,.9) 0%,transparent 25%,transparent 73%,rgba(67,6,23,.78) 100%); }
+.player-copy { position: absolute; left: 23px; right: 23px; bottom: 37px; z-index: 2; text-shadow: 0 2px 12px rgba(27,0,9,.8); }
+.player-copy strong { font-size: 13px; letter-spacing: .04em; }
+.player-copy p { margin: 4px 0 0; color: rgba(255,255,255,.76); font-size: 11px; line-height: 1.4; }
+.player-controls { position: absolute; left: 18px; right: 18px; bottom: 7px; z-index: 3; display: flex; align-items: center; justify-content: space-between; }
+.player-controls button { width: 32px; height: 32px; display: grid; place-items: center; color: rgba(255,255,255,.78); background: transparent; border-radius: 50%; }
+.player-controls button:hover { color: #fff; background: rgba(255,255,255,.09); }
+.player-controls button svg { width: 17px; height: 17px; }
+.player-dots { display: flex; gap: 7px; }
+.player-dots button { width: 18px; height: 32px; padding: 0; }
+.player-dots button::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.34); transition: .2s ease; }
+.player-dots button.active::after { width: 14px; border-radius: 4px; background: #dfbf72; }
+.player-progress { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; height: 2px; background: rgba(255,255,255,.07); }
+.player-progress span { display: block; width: 0; height: 100%; background: #dfbf72; }
+.player-progress span.is-running { animation: player-progress 15s linear forwards; }
+@keyframes player-progress { to { width: 100%; } }
+
+.sidebar-user { margin-top: auto; padding: 11px 9px; display: grid; grid-template-columns: 40px minmax(0,1fr) 42px; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,.1); }
+.user-avatar { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid rgba(223,191,114,.45); border-radius: 50%; background: rgba(255,255,255,.07); color: #f3d991; font-size: 13px; font-weight: 800; }
+.sidebar-user-copy { min-width: 0; }
+.sidebar-user-copy strong, .sidebar-user-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-user-copy strong { font-size: 13px; }
+.sidebar-user-copy small { margin-top: 3px; color: rgba(255,255,255,.48); font-size: 10px; }
+.logout { width: 42px; height: 42px; display: grid; place-items: center; color: rgba(255,255,255,.72); background: rgba(255,255,255,.07); border-radius: 11px; }
+.logout:hover { color: #f3d991; background: rgba(255,255,255,.12); }
+.logout span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.sidebar-motto { margin: 6px 0 0; color: rgba(255,255,255,.34); font-size: 8px; font-weight: 700; letter-spacing: .16em; text-align: center; text-transform: uppercase; }
+.sidebar-backdrop { display: none; }
+.sidebar-toggle { display: none; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; color: var(--maroon); background: #fff; border: 1px solid var(--line); border-radius: 11px; }
+body.sidebar-open { overflow: hidden; }
 
 
 /* =========================================================
@@ -502,10 +529,8 @@ code {
    ========================================================= */
 
 .main {
-  max-width: 1450px;
-
-  margin-left: 245px;
-
+  width: calc(100% - 272px);
+  margin-left: 272px;
   padding: 30px 36px 50px;
 }
 
@@ -1241,13 +1266,25 @@ code {
 
 @media (max-width: 850px) {
 
-  /* Hide desktop sidebar */
+  /* Off-canvas sidebar */
   .sidebar {
-    display: none;
+    width: min(84vw, 300px);
+    height: 100dvh;
+    bottom: auto;
+    transform: translateX(-102%);
+    transition: transform 240ms cubic-bezier(.22,.8,.24,1);
+    box-shadow: 18px 0 55px rgba(30,2,12,.28);
   }
+
+  .sidebar.is-open { transform: translateX(0); }
+  .sidebar-close { display: grid; }
+  .sidebar-backdrop { position: fixed; inset: 0; z-index: 35; display: block; visibility: hidden; opacity: 0; background: rgba(29,7,15,.55); backdrop-filter: blur(2px); transition: opacity 200ms ease, visibility 200ms ease; }
+  .sidebar-backdrop.is-open { visibility: visible; opacity: 1; }
+  .sidebar-toggle { display: grid; }
 
   /* Main content */
   .main {
+    width: 100%;
     margin: 0;
 
     padding:
@@ -1293,6 +1330,8 @@ code {
     font-size: 18px;
   }
 
+  .bottom-nav svg { width: 21px; height: 21px; }
+
   .bottom-nav span {
     font-size: 9px;
 
@@ -1305,8 +1344,11 @@ code {
 
   /* Top bar */
   .topbar {
+    gap: 12px;
     margin-bottom: 18px;
   }
+
+  .topbar > div:first-of-type { min-width: 0; flex: 1; }
 
   .topbar h2 {
     font-size: 23px;
@@ -1370,12 +1412,33 @@ code {
   }
 }
 
+@media (max-height: 780px) and (min-width: 851px) {
+  .sidebar-inner { padding-top: 15px; }
+  .side-brand { padding-bottom: 11px; }
+  .nav-item { min-height: 42px; padding-block: 8px; }
+  .player-feature { min-height: 155px; margin-top: 7px; }
+}
+
+@media (max-height: 650px) {
+  .sidebar-inner { padding-top: max(8px, env(safe-area-inset-top)); }
+  .side-brand { padding-bottom: 7px; }
+  .side-crest { width: 37px; height: 41px; }
+  .nav-item { min-height: 40px; padding-block: 7px; }
+  .player-feature { min-height: 118px; margin-top: 4px; }
+  .player-copy { bottom: 32px; }
+  .sidebar-user { padding-block: 7px; }
+}
+
 
 /* =========================================================
    27. SMALL MOBILE SCREENS
    ========================================================= */
 
 @media (max-width: 450px) {
+
+  .sidebar { width: min(86vw, 300px); }
+  .sidebar-inner { padding-inline: 15px; }
+  .player-feature { min-height: 150px; margin-inline: -15px; }
 
   .stats-grid,
   .cash-grid {

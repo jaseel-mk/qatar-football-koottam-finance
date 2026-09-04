@@ -1,0 +1,17 @@
+QFK Sidebar V2
+
+Modified files:
+- index.html
+- styles.css
+- app.js
+
+Added:
+- assets/sidebar/stadium-fallback.svg
+- assets/sidebar/README.txt
+
+No database / Supabase SQL changes are required.
+
+Before publishing:
+Add your player images to assets/sidebar/ using the filenames listed in README.txt.
+
+The existing finance logic, Supabase integration, current-user selection and audit tracking remain unchanged.
