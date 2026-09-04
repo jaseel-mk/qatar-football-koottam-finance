@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7b1536"/>
+      <stop offset=".55" stop-color="#4d0a21"/>
+      <stop offset="1" stop-color="#22040e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".18" r=".7">
+      <stop offset="0" stop-color="#f4d57c" stop-opacity=".3"/>
+      <stop offset=".45" stop-color="#cf335d" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="900" height="650" fill="url(#bg)"/>
+  <rect width="900" height="650" fill="url(#glow)"/>
+
+  <!-- stadium roof -->
+  <path d="M0 260 Q450 90 900 260" fill="none" stroke="#f2d98e" stroke-opacity=".35" stroke-width="9"/>
+  <path d="M0 286 Q450 125 900 286" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="4"/>
+
+  <!-- floodlights -->
+  <g fill="#ffeab0">
+    <circle cx="85" cy="245" r="7"/><circle cx="115" cy="231" r="7"/><circle cx="148" cy="218" r="7"/>
+    <circle cx="752" cy="218" r="7"/><circle cx="785" cy="231" r="7"/><circle cx="815" cy="245" r="7"/>
+  </g>
+
+  <!-- pitch -->
+  <path d="M185 410 L715 410 L840 650 L60 650 Z" fill="#7e2440" opacity=".42"/>
+  <path d="M450 410 L450 650" stroke="#f4d9df" stroke-opacity=".18" stroke-width="3"/>
+  <ellipse cx="450" cy="505" rx="86" ry="48" fill="none" stroke="#f4d9df" stroke-opacity=".15" stroke-width="3"/>
+
+  <!-- crowd silhouettes -->
+  <g fill="#19030b" opacity=".88">
+    <circle cx="40" cy="510" r="22"/><rect x="19" y="529" width="42" height="121" rx="20"/>
+    <circle cx="92" cy="530" r="18"/><rect x="75" y="547" width="34" height="103" rx="16"/>
+    <circle cx="143" cy="500" r="24"/><rect x="120" y="521" width="46" height="129" rx="22"/>
+    <circle cx="205" cy="535" r="20"/><rect x="186" y="553" width="38" height="97" rx="18"/>
+    <circle cx="688" cy="525" r="19"/><rect x="670" y="543" width="37" height="107" rx="18"/>
+    <circle cx="750" cy="503" r="24"/><rect x="727" y="524" width="47" height="126" rx="22"/>
+    <circle cx="812" cy="531" r="19"/><rect x="794" y="548" width="37" height="102" rx="18"/>
+    <circle cx="864" cy="508" r="22"/><rect x="843" y="527" width="42" height="123" rx="20"/>
+  </g>
+
+  <!-- raised arms -->
+  <g stroke="#19030b" stroke-width="18" stroke-linecap="round" opacity=".9">
+    <path d="M140 548 105 458"/><path d="M153 548 193 455"/>
+    <path d="M744 548 710 455"/><path d="M760 548 800 458"/>
+  </g>
+</svg>

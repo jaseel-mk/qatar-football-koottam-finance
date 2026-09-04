@@ -306,6 +306,24 @@ function updateCurrentUserUI() {
         ? `User: ${currentUser}`
         : "Select user";
   }
+
+  if ($("sidebarUserName")) {
+    $("sidebarUserName").textContent =
+      currentUser || "Current user";
+  }
+
+  if ($("sidebarUserInitials")) {
+    const initials =
+      (currentUser || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0]?.toUpperCase() || "")
+        .join("") || "--";
+
+    $("sidebarUserInitials").textContent = initials;
+  }
 }
 
 async function saveIdentity(ev) {
@@ -410,11 +428,266 @@ function switchUser() {
 }
 
 
+
+
+/* ============================================================
+   DESKTOP SIDEBAR FEATURE ROTATOR
+   ------------------------------------------------------------
+   Put your own images in:
+     assets/sidebar/messi.jpg
+     assets/sidebar/ronaldo.jpg
+     assets/sidebar/neymar.jpg
+     assets/sidebar/yamal.jpg
+     assets/sidebar/chhetri.jpg
+
+   If an image is missing, the app automatically falls back to
+   the included stadium artwork.
+
+   The captions below are original QFK motivational lines,
+   not quotations attributed to the players.
+============================================================ */
+
+const SIDEBAR_FEATURE_INTERVAL = 15000;
+
+const SIDEBAR_FEATURES = [
+  {
+    player: "LIONEL MESSI",
+    image: "assets/sidebar/messi.jpg",
+    text: "Small touches. Big moments."
+  },
+  {
+    player: "CRISTIANO RONALDO",
+    image: "assets/sidebar/ronaldo.jpg",
+    text: "Train with purpose. Compete with belief."
+  },
+  {
+    player: "NEYMAR",
+    image: "assets/sidebar/neymar.jpg",
+    text: "Play with joy. Create with courage."
+  },
+  {
+    player: "LAMINE YAMAL",
+    image: "assets/sidebar/yamal.jpg",
+    text: "Be brave. Trust your football."
+  },
+  {
+    player: "SUNIL CHHETRI",
+    image: "assets/sidebar/chhetri.jpg",
+    text: "Lead with effort. Play for the team."
+  }
+];
+
+let sidebarFeatureIndex =
+  Math.floor(Math.random() * SIDEBAR_FEATURES.length);
+
+let sidebarFeatureTimer = null;
+let sidebarFeatureRaf = null;
+let sidebarFeatureStartedAt = 0;
+
+function buildSidebarFeatureDots() {
+  const dots = $("sideFeatureDots");
+  if (!dots) return;
+
+  dots.innerHTML =
+    SIDEBAR_FEATURES
+      .map(
+        (_, index) =>
+          `<button
+            type="button"
+            class="side-feature-dot"
+            data-feature-index="${index}"
+            aria-label="Show football image ${index + 1}"
+          ></button>`
+      )
+      .join("");
+
+  dots
+    .querySelectorAll(".side-feature-dot")
+    .forEach(dot => {
+      dot.addEventListener(
+        "click",
+        () => {
+          sidebarFeatureIndex =
+            Number(dot.dataset.featureIndex);
+
+          renderSidebarFeature();
+          restartSidebarFeatureTimer();
+        }
+      );
+    });
+}
+
+function renderSidebarFeature() {
+  const feature = $("sideFeature");
+  const image = $("sideFeatureImage");
+  const player = $("sideFeaturePlayer");
+  const text = $("sideFeatureText");
+  const dots = $("sideFeatureDots");
+
+  if (!feature || !image || !player || !text) {
+    return;
+  }
+
+  const item =
+    SIDEBAR_FEATURES[sidebarFeatureIndex];
+
+  feature.classList.remove("is-visible");
+
+  window.setTimeout(() => {
+    image.onerror = () => {
+      image.onerror = null;
+      image.src =
+        "assets/sidebar/stadium-fallback.svg";
+    };
+
+    image.src = item.image;
+    image.alt = `${item.player} football feature`;
+    player.textContent = item.player;
+    text.textContent = item.text;
+
+    dots
+      ?.querySelectorAll(".side-feature-dot")
+      .forEach(
+        (dot, index) =>
+          dot.classList.toggle(
+            "active",
+            index === sidebarFeatureIndex
+          )
+      );
+
+    requestAnimationFrame(
+      () =>
+        feature.classList.add("is-visible")
+    );
+  }, 240);
+}
+
+function animateSidebarFeatureProgress() {
+  cancelAnimationFrame(sidebarFeatureRaf);
+
+  const progress =
+    $("sideFeatureProgress");
+
+  if (!progress) return;
+
+  const draw = () => {
+    const elapsed =
+      Date.now() - sidebarFeatureStartedAt;
+
+    const percentage =
+      Math.min(
+        100,
+        elapsed /
+          SIDEBAR_FEATURE_INTERVAL *
+          100
+      );
+
+    progress.style.width =
+      `${percentage}%`;
+
+    if (percentage < 100) {
+      sidebarFeatureRaf =
+        requestAnimationFrame(draw);
+    }
+  };
+
+  draw();
+}
+
+function restartSidebarFeatureTimer() {
+  clearInterval(sidebarFeatureTimer);
+  cancelAnimationFrame(sidebarFeatureRaf);
+
+  sidebarFeatureStartedAt =
+    Date.now();
+
+  if ($("sideFeatureProgress")) {
+    $("sideFeatureProgress").style.width =
+      "0%";
+  }
+
+  animateSidebarFeatureProgress();
+
+  sidebarFeatureTimer =
+    setInterval(
+      () => {
+        sidebarFeatureIndex =
+          (
+            sidebarFeatureIndex + 1
+          ) %
+          SIDEBAR_FEATURES.length;
+
+        renderSidebarFeature();
+
+        sidebarFeatureStartedAt =
+          Date.now();
+
+        animateSidebarFeatureProgress();
+      },
+      SIDEBAR_FEATURE_INTERVAL
+    );
+}
+
+function initSidebarFeature() {
+  if (!$("sideFeature")) return;
+
+  buildSidebarFeatureDots();
+  renderSidebarFeature();
+  restartSidebarFeatureTimer();
+
+  $("sideFeatureNext")
+    ?.addEventListener(
+      "click",
+      () => {
+        sidebarFeatureIndex =
+          (
+            sidebarFeatureIndex + 1
+          ) %
+          SIDEBAR_FEATURES.length;
+
+        renderSidebarFeature();
+        restartSidebarFeatureTimer();
+      }
+    );
+
+  $("sideFeaturePrev")
+    ?.addEventListener(
+      "click",
+      () => {
+        sidebarFeatureIndex =
+          (
+            sidebarFeatureIndex -
+            1 +
+            SIDEBAR_FEATURES.length
+          ) %
+          SIDEBAR_FEATURES.length;
+
+        renderSidebarFeature();
+        restartSidebarFeatureTimer();
+      }
+    );
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) {
+        clearInterval(sidebarFeatureTimer);
+        cancelAnimationFrame(sidebarFeatureRaf);
+      } else {
+        restartSidebarFeatureTimer();
+      }
+    }
+  );
+}
+
+
 /* ============================================================
    8. INITIALIZATION
 ============================================================ */
 
 async function init() {
+
+  initSidebarFeature();
 
   if (!configured) {
     $("configWarning")
