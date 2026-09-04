@@ -5,35 +5,19 @@
 
    FEATURES
    ------------------------------------------------------------
-   1. Supabase authentication
-   2. Login / logout
-   3. Forgot password
-   4. Password reset
-   5. Members
-      - Add
-      - Edit
-      - Delete / deactivate
-      - Re-activate deleted member
-   6. Matches
-      - Add
-      - Edit
-      - Delete
-   7. Expenses
-      - Add
-      - Edit
-      - Delete
-   8. Cash transactions
-      - Add transfer
-      - Edit
-      - Delete
-   9. Dashboard
-   10. Reports
-   11. CSV export
+   1. No Supabase Authentication login
+   2. "Who are you?" member selector
+   3. Add your name if it is not listed
+   4. Audit tracking: created / updated / deleted by
+   5. Soft deletion for finance records
+   6. Members, matches, expenses and cash transactions
+   7. Dashboard, reports and CSV export
 
    IMPORTANT
    ------------------------------------------------------------
-   - Use ONLY the Supabase publishable/anon key.
+   - Uses ONLY the Supabase publishable/anon key.
    - NEVER use the service_role key in frontend JavaScript.
+   - The selected member name is an audit label, not secure identity.
 ============================================================ */
 
 
@@ -47,9 +31,6 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_knMPrkJfZ003rPvb7bRgRA_QJC8DWGJ";
 
-const RESET_PAGE_URL =
-  "https://jaseel-mk.github.io/qatar-football-koottam-finance/reset.html";
-
 
 /* ============================================================
    2. SUPABASE CLIENT
@@ -62,20 +43,13 @@ const configured =
 const sb = configured
   ? window.supabase.createClient(
       SUPABASE_URL,
-      SUPABASE_KEY,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      }
+      SUPABASE_KEY
     )
   : null;
 
 
 /* ============================================================
-   3. APPLICATION STATE
+   3. APPLICATION STATE + CURRENT USER
 ============================================================ */
 
 let state = {
@@ -86,6 +60,14 @@ let state = {
   ledger: [],
   page: "dashboard"
 };
+
+const CURRENT_USER_KEY =
+  "qfk_current_user";
+
+let currentUser =
+  localStorage.getItem(
+    CURRENT_USER_KEY
+  ) || "";
 
 
 /* ============================================================
@@ -111,7 +93,6 @@ function money(n) {
   )}`;
 }
 
-
 function esc(v) {
 
   return String(v ?? "").replace(
@@ -125,7 +106,6 @@ function esc(v) {
     }[m])
   );
 }
-
 
 function dateText(v) {
 
@@ -143,6 +123,20 @@ function dateText(v) {
     );
 }
 
+function dateTimeText(v) {
+  if (!v) return "—";
+
+  return new Date(v).toLocaleString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  );
+}
 
 function today() {
 
@@ -150,7 +144,6 @@ function today() {
     .toISOString()
     .slice(0, 10);
 }
-
 
 function toast(msg) {
 
@@ -162,7 +155,6 @@ function toast(msg) {
   }
 
   t.textContent = msg;
-
   t.classList.add("show");
 
   clearTimeout(window.__toastTimer);
@@ -174,7 +166,6 @@ function toast(msg) {
     );
 }
 
-
 function empty(text) {
 
   return `
@@ -182,6 +173,35 @@ function empty(text) {
       ${esc(text)}
     </div>
   `;
+}
+
+function auditCreated(actor = currentUser) {
+  return {
+    created_by: actor || "Unknown"
+  };
+}
+
+function auditUpdated(actor = currentUser) {
+  return {
+    updated_by: actor || "Unknown",
+    updated_at: new Date().toISOString()
+  };
+}
+
+function auditDeleted(actor = currentUser) {
+  return {
+    deleted_by: actor || "Unknown",
+    deleted_at: new Date().toISOString()
+  };
+}
+
+function auditSummary(row) {
+  const created = row.created_by || "System";
+  const updated = row.updated_by;
+
+  return updated
+    ? `Added by ${esc(created)}<br><span class="audit-sub">Edited by ${esc(updated)}</span>`
+    : `Added by ${esc(created)}`;
 }
 
 
@@ -208,163 +228,185 @@ async function requireOk(result) {
 
 
 /* ============================================================
-   7. PASSWORD RESET
+   7. WHO ARE YOU?
 ============================================================ */
 
-function addForgotPasswordLink() {
+function populateIdentityMembers() {
+  const select = $("identityMember");
+  if (!select) return;
 
-  const form =
-    $("loginForm");
+  const options = state.members
+    .slice()
+    .sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+    .map(m => `
+      <option value="${esc(m.id)}">
+        ${esc(m.name)}
+      </option>
+    `)
+    .join("");
 
-  if (!form)
-    return;
-
-  if ($("forgotPasswordBtn"))
-    return;
-
-  const wrapper =
-    document.createElement("div");
-
-  wrapper.style.cssText =
-    "text-align:center;margin-top:12px;";
-
-  const btn =
-    document.createElement("button");
-
-  btn.type = "button";
-
-  btn.id =
-    "forgotPasswordBtn";
-
-  btn.textContent =
-    "Forgot password?";
-
-  btn.style.cssText =
-    "border:0;" +
-    "background:none;" +
-    "color:#52786d;" +
-    "text-decoration:underline;" +
-    "cursor:pointer;" +
-    "font-size:14px;" +
-    "padding:8px;";
-
-  btn.onclick =
-    sendPasswordReset;
-
-  wrapper.appendChild(btn);
-
-  form.insertAdjacentElement(
-    "afterend",
-    wrapper
-  );
+  select.innerHTML = `
+    <option value="">Select your name</option>
+    ${options}
+    <option value="__new__">+ My name is not listed</option>
+  `;
 }
 
+function toggleNewIdentityName() {
+  const isNew =
+    $("identityMember")?.value === "__new__";
 
-async function sendPasswordReset() {
+  $("newIdentityWrap")
+    ?.classList.toggle("hidden", !isNew);
+
+  if (isNew) {
+    setTimeout(
+      () => $("newIdentityName")?.focus(),
+      30
+    );
+  }
+}
+
+function showIdentityScreen() {
+  $("authView")
+    ?.classList.remove("hidden");
+
+  $("appView")
+    ?.classList.add("hidden");
+
+  populateIdentityMembers();
+
+  if ($("identityMember"))
+    $("identityMember").value = "";
+
+  $("newIdentityWrap")
+    ?.classList.add("hidden");
+
+  if ($("newIdentityName"))
+    $("newIdentityName").value = "";
+}
+
+function setCurrentUser(name) {
+  currentUser = name;
+
+  localStorage.setItem(
+    CURRENT_USER_KEY,
+    currentUser
+  );
+
+  updateCurrentUserUI();
+}
+
+function updateCurrentUserUI() {
+  if ($("userEmail")) {
+    $("userEmail").textContent =
+      currentUser
+        ? `User: ${currentUser}`
+        : "Select user";
+  }
+}
+
+async function saveIdentity(ev) {
+  ev.preventDefault();
 
   if (!sb) {
-
-    toast(
-      "Supabase is not configured."
-    );
-
+    toast("Supabase is not configured.");
     return;
   }
 
-  const email =
-    $("loginEmail")?.value?.trim();
+  const selected =
+    $("identityMember")?.value || "";
 
-  if (!email) {
-
-    toast(
-      "Enter your email address first."
-    );
-
-    $("loginEmail")?.focus();
-
+  if (!selected) {
+    toast("Select your name.");
     return;
   }
 
-  try {
+  if (selected !== "__new__") {
+    const member = state.members.find(
+      m => m.id === selected
+    );
 
-    const { error } =
-      await sb.auth.resetPasswordForEmail(
-        email,
-        {
-          redirectTo:
-            RESET_PAGE_URL
-        }
-      );
-
-    if (error) {
-
-      console.error(
-        "Password reset error:",
-        error
-      );
-
-      toast(error.message);
-
+    if (!member) {
+      toast("Member not found. Refresh and try again.");
       return;
     }
 
-    toast(
-      "Password reset email sent. Check your email."
+    setCurrentUser(member.name);
+    showApp();
+    toast(`Welcome, ${member.name}`);
+    return;
+  }
+
+  const name =
+    $("newIdentityName")
+      ?.value
+      ?.trim();
+
+  if (!name) {
+    toast("Enter your name.");
+    $("newIdentityName")?.focus();
+    return;
+  }
+
+  const existing = state.allMembers.find(
+    m =>
+      m.name.trim().toLowerCase() ===
+      name.toLowerCase()
+  );
+
+  try {
+    if (existing) {
+      if (!existing.active) {
+        await requireOk(
+          await sb
+            .from("members")
+            .update({
+              active: true,
+              deleted_by: null,
+              deleted_at: null,
+              ...auditUpdated(name)
+            })
+            .eq("id", existing.id)
+        );
+      }
+
+      setCurrentUser(existing.name);
+      await loadData(false);
+      showApp();
+      toast(`Welcome, ${existing.name}`);
+      return;
+    }
+
+    const created = await requireOk(
+      await sb
+        .from("members")
+        .insert({
+          name,
+          active: true,
+          ...auditCreated(name)
+        })
+        .select()
+        .single()
     );
+
+    setCurrentUser(created.name);
+    await loadData(false);
+    showApp();
+    toast(`Welcome, ${created.name}`);
 
   } catch (err) {
-
     console.error(err);
-
-    toast(
-      "Unable to send password reset email."
-    );
   }
 }
 
-
-async function updatePassword(newPassword) {
-
-  if (!sb) {
-
-    toast(
-      "Supabase is not configured."
-    );
-
-    return false;
-  }
-
-  if (
-    !newPassword ||
-    newPassword.length < 6
-  ) {
-
-    toast(
-      "Password must be at least 6 characters."
-    );
-
-    return false;
-  }
-
-  const { error } =
-    await sb.auth.updateUser({
-      password: newPassword
-    });
-
-  if (error) {
-
-    console.error(error);
-
-    toast(error.message);
-
-    return false;
-  }
-
-  toast(
-    "Password updated successfully."
-  );
-
-  return true;
+function switchUser() {
+  currentUser = "";
+  localStorage.removeItem(CURRENT_USER_KEY);
+  updateCurrentUserUI();
+  showIdentityScreen();
 }
 
 
@@ -375,98 +417,51 @@ async function updatePassword(newPassword) {
 async function init() {
 
   if (!configured) {
-
     $("configWarning")
-      ?.classList
-      .remove("hidden");
-
+      ?.classList.remove("hidden");
+    showIdentityScreen();
     return;
   }
 
-  addForgotPasswordLink();
+  await loadData(false);
 
-  const {
-    data: { session }
-  } =
-    await sb.auth.getSession();
+  const savedMember =
+    state.members.find(
+      m => m.name === currentUser
+    );
 
-  if (session) {
-
-    showApp(session);
-
+  if (savedMember) {
+    currentUser = savedMember.name;
+    showApp();
   } else {
-
-    showAuth();
-
+    currentUser = "";
+    localStorage.removeItem(CURRENT_USER_KEY);
+    showIdentityScreen();
   }
-
-  sb.auth.onAuthStateChange(
-    (_event, session) => {
-
-      if (session) {
-
-        showApp(session);
-
-      } else {
-
-        showAuth();
-
-      }
-
-    }
-  );
 }
 
 
 /* ============================================================
-   9. AUTH SCREEN
+   9. MAIN APPLICATION
 ============================================================ */
 
-function showAuth() {
-
+function showApp() {
   $("authView")
-    ?.classList
-    .remove("hidden");
+    ?.classList.add("hidden");
 
   $("appView")
-    ?.classList
-    .add("hidden");
+    ?.classList.remove("hidden");
 
-  addForgotPasswordLink();
+  updateCurrentUserUI();
+  render();
 }
 
 
 /* ============================================================
-   10. MAIN APPLICATION
+   10. LOAD DATA
 ============================================================ */
 
-async function showApp(session) {
-
-  $("authView")
-    ?.classList
-    .add("hidden");
-
-  $("appView")
-    ?.classList
-    .remove("hidden");
-
-  if ($("userEmail")) {
-
-    $("userEmail").textContent =
-      session.user.email ||
-      "Signed in";
-
-  }
-
-  await loadData();
-}
-
-
-/* ============================================================
-   11. LOAD DATA
-============================================================ */
-
-async function loadData() {
+async function loadData(renderAfter = true) {
 
   if (!sb)
     return;
@@ -478,94 +473,67 @@ async function loadData() {
       matchesResult,
       expensesResult,
       ledgerResult
-    ] =
-      await Promise.all([
+    ] = await Promise.all([
 
-        sb
-          .from("members")
-          .select("*")
-          .order("name"),
+      sb
+        .from("members")
+        .select("*")
+        .order("name"),
 
-        sb
-          .from("matches")
-          .select("*")
-          .order(
-            "match_number",
-            {
-              ascending: false
-            }
-          ),
+      sb
+        .from("matches")
+        .select("*")
+        .order(
+          "match_number",
+          { ascending: false }
+        ),
 
-        sb
-          .from("expenses")
-          .select(
-            "*, members:paid_by(name)"
-          )
-          .order(
-            "expense_date",
-            {
-              ascending: false
-            }
-          ),
+      sb
+        .from("expenses")
+        .select("*, members:paid_by(name)")
+        .order(
+          "expense_date",
+          { ascending: false }
+        ),
 
-        sb
-          .from("cash_transactions")
-          .select(
-            "*, from_member:from_member_id(name), to_member:to_member_id(name)"
-          )
-          .order(
-            "transaction_date",
-            {
-              ascending: false
-            }
-          )
+      sb
+        .from("cash_transactions")
+        .select("*, from_member:from_member_id(name), to_member:to_member_id(name)")
+        .order(
+          "transaction_date",
+          { ascending: false }
+        )
 
-      ]);
-
+    ]);
 
     state.allMembers =
-      await requireOk(
-        membersResult
-      ) || [];
+      await requireOk(membersResult) || [];
 
-
-    /*
-     * Only active members are used for
-     * normal cash calculations.
-     */
     state.members =
       state.allMembers.filter(
         m => m.active === true
       );
 
-
     state.matches =
-      await requireOk(
-        matchesResult
-      ) || [];
-
+      (await requireOk(matchesResult) || [])
+        .filter(m => !m.deleted_at);
 
     state.expenses =
-      await requireOk(
-        expensesResult
-      ) || [];
-
+      (await requireOk(expensesResult) || [])
+        .filter(e => !e.deleted_at);
 
     state.ledger =
-      await requireOk(
-        ledgerResult
-      ) || [];
+      (await requireOk(ledgerResult) || [])
+        .filter(t => !t.deleted_at);
 
-
-    render();
+    if (renderAfter)
+      render();
 
   } catch (e) {
-
     console.error(
       "Data loading error:",
       e
     );
-
   }
 }
 
@@ -929,6 +897,7 @@ function renderMatches() {
               <th>Collected</th>
               <th>Expenses</th>
               <th>Balance</th>
+              <th>Activity</th>
               <th>Actions</th>
             </tr>
 
@@ -1006,6 +975,10 @@ function renderMatches() {
                         <strong>
                           ${money(b)}
                         </strong>
+                      </td>
+
+                      <td class="audit-cell">
+                        ${auditSummary(m)}
                       </td>
 
                       <td>
@@ -1087,6 +1060,12 @@ function openMatch(id) {
       ·
       ${esc(m.players)} players
     </p>
+
+    <div class="audit-panel">
+      <strong>Activity</strong>
+      <div>Added by ${esc(m.created_by || "System")} · ${dateTimeText(m.created_at)}</div>
+      ${m.updated_by ? `<div>Last edited by ${esc(m.updated_by)} · ${dateTimeText(m.updated_at)}</div>` : ""}
+    </div>
 
 
     <div class="stats-grid">
@@ -1380,7 +1359,10 @@ async function saveMember(ev) {
       await sb
         .from("members")
         .update({
-          active: true
+          active: true,
+          deleted_by: null,
+          deleted_at: null,
+          ...auditUpdated()
         })
         .eq(
           "id",
@@ -1409,7 +1391,8 @@ async function saveMember(ev) {
       .from("members")
       .insert({
         name,
-        active: true
+        active: true,
+        ...auditCreated()
       })
   );
 
@@ -1578,7 +1561,10 @@ function editMember(id) {
           .from("members")
           .update({
             name: newName,
-            active
+            active,
+            ...(active
+              ? { deleted_by: null, deleted_at: null, ...auditUpdated() }
+              : { ...auditUpdated(), ...auditDeleted() })
           })
           .eq(
             "id",
@@ -1640,7 +1626,8 @@ async function deleteMember(id) {
     await sb
       .from("members")
       .update({
-        active: false
+        active: false,
+        ...auditDeleted()
       })
       .eq(
         "id",
@@ -1898,7 +1885,9 @@ async function saveMatch(ev) {
 
     notes:
       $("mfNotes").value ||
-      null
+      null,
+
+    ...auditCreated()
 
   };
 
@@ -1950,7 +1939,9 @@ async function saveMatch(ev) {
               m.id,
 
             description:
-              `Match #${m.match_number} collection`
+              `Match #${m.match_number} collection`,
+
+            ...auditCreated()
 
           })
       );
@@ -2179,7 +2170,9 @@ function editMatch(id) {
 
         notes:
           $("emNotes").value ||
-          null
+          null,
+
+        ...auditUpdated()
 
       };
 
@@ -2228,7 +2221,9 @@ function editMatch(id) {
                     receiver,
 
                   description:
-                    `Match #${updated.match_number} collection`
+                    `Match #${updated.match_number} collection`,
+
+                  ...auditUpdated()
 
                 })
                 .eq(
@@ -2244,7 +2239,9 @@ function editMatch(id) {
                 .from(
                   "cash_transactions"
                 )
-                .delete()
+                .update({
+                  ...auditDeleted()
+                })
                 .eq(
                   "id",
                   collectionTx.id
@@ -2285,7 +2282,9 @@ function editMatch(id) {
                   id,
 
                 description:
-                  `Match #${updated.match_number} collection`
+                  `Match #${updated.match_number} collection`,
+
+                ...auditCreated()
 
               })
           );
@@ -2312,7 +2311,7 @@ function editMatch(id) {
 
 
 /* ============================================================
-   27. DELETE MATCH
+   27. DELETE MATCH (SOFT DELETE)
 ============================================================ */
 
 async function deleteMatch(id) {
@@ -2325,69 +2324,49 @@ async function deleteMatch(id) {
   if (!m)
     return;
 
-
   const expenseCount =
     state.expenses.filter(
-      e =>
-        e.match_id === id
+      e => e.match_id === id
     ).length;
 
+  const ok = confirm(
+    `Delete Match #${m.match_number}?
 
-  const ok =
-    confirm(
-      `Delete Match #${m.match_number}?\n\n` +
-      `This will also delete ${expenseCount} ` +
-      `expense record(s) belonging to this match ` +
-      `because your SQL uses ON DELETE CASCADE.\n\n` +
-      `Cash transactions will remain unless manually deleted.`
-    );
-
+` +
+    `${expenseCount} expense record(s) and related cash records ` +
+    `will be hidden from the live finance totals, but kept for audit history.`
+  );
 
   if (!ok)
     return;
 
-
   try {
+    await requireOk(
+      await sb
+        .from("expenses")
+        .update({ ...auditDeleted() })
+        .eq("match_id", id)
+    );
 
-    /*
-     * Delete cash collection/payment records
-     * first so no orphan financial entries remain.
-     */
     await requireOk(
       await sb
         .from("cash_transactions")
-        .delete()
-        .eq(
-          "match_id",
-          id
-        )
+        .update({ ...auditDeleted() })
+        .eq("match_id", id)
     );
 
-
-    /*
-     * Expenses cascade automatically.
-     */
     await requireOk(
       await sb
         .from("matches")
-        .delete()
-        .eq(
-          "id",
-          id
-        )
+        .update({ ...auditDeleted() })
+        .eq("id", id)
     );
 
-
-    toast(
-      `Match #${m.match_number} deleted`
-    );
-
+    toast(`Match #${m.match_number} deleted`);
     await loadData();
 
   } catch (err) {
-
     console.error(err);
-
   }
 }
 
@@ -2452,6 +2431,10 @@ function renderCash() {
                 Current ledger balance
               </div>
 
+              <div class="match-meta audit-inline">
+                ${auditSummary(p)}
+              </div>
+
             </div>
           `
         )
@@ -2483,6 +2466,7 @@ function renderCash() {
               <th>From</th>
               <th>To</th>
               <th>Description</th>
+              <th>Activity</th>
               <th>Actions</th>
             </tr>
 
@@ -2550,6 +2534,10 @@ function renderCash() {
                       )}
                     </td>
 
+
+                    <td class="audit-cell">
+                      ${auditSummary(t)}
+                    </td>
 
                     <td>
 
@@ -2790,7 +2778,9 @@ async function saveTransfer(ev) {
 
         description:
           $("tfReason").value ||
-          "Cash transfer"
+          "Cash transfer",
+
+        ...auditCreated()
 
       })
   );
@@ -3099,7 +3089,9 @@ function editCashTransaction(id) {
               description:
                 $("ecDescription")
                   .value ||
-                null
+                null,
+
+              ...auditUpdated()
 
             })
             .eq(
@@ -3170,7 +3162,9 @@ async function deleteCashTransaction(id) {
         .from(
           "cash_transactions"
         )
-        .delete()
+        .update({
+          ...auditDeleted()
+        })
         .eq(
           "id",
           id
@@ -3237,6 +3231,7 @@ function renderExpenses() {
               <th>Amount</th>
               <th>Paid by</th>
               <th>Note</th>
+              <th>Activity</th>
               <th>Actions</th>
             </tr>
 
@@ -3304,6 +3299,10 @@ function renderExpenses() {
                       )}
                     </td>
 
+
+                    <td class="audit-cell">
+                      ${auditSummary(e)}
+                    </td>
 
                     <td>
 
@@ -3575,7 +3574,9 @@ async function saveExpense(ev) {
 
     description:
       $("efNote").value ||
-      null
+      null,
+
+    ...auditCreated()
 
   };
 
@@ -3618,7 +3619,9 @@ async function saveExpense(ev) {
             row.match_id,
 
           description:
-            `Expense #${expense.id}`
+            `Expense #${expense.id}`,
+
+          ...auditCreated()
 
         })
     );
@@ -3894,7 +3897,9 @@ function editExpense(id) {
 
         description:
           $("eeNote").value ||
-          null
+          null,
+
+        ...auditUpdated()
 
       };
 
@@ -3937,7 +3942,9 @@ function editExpense(id) {
                   updated.match_id,
 
                 description:
-                  `Expense #${id}`
+                  `Expense #${id}`,
+
+                ...auditUpdated()
 
               })
               .eq(
@@ -3975,7 +3982,9 @@ function editExpense(id) {
                   updated.match_id,
 
                 description:
-                  `Expense #${id}`
+                  `Expense #${id}`,
+
+                ...auditCreated()
 
               })
           );
@@ -4002,116 +4011,73 @@ function editExpense(id) {
 
 
 /* ============================================================
-   37. DELETE EXPENSE
+   37. DELETE EXPENSE (SOFT DELETE)
 ============================================================ */
 
 async function deleteExpense(id) {
 
-  const e =
-    state.expenses.find(
-      x => x.id === id
-    );
+  const e = state.expenses.find(
+    x => x.id === id
+  );
 
   if (!e)
     return;
 
+  const ok = confirm(
+    `Delete this expense?
 
-  const ok =
-    confirm(
-      `Delete this expense?\n\n` +
-      `${e.category}\n` +
-      `${money(e.amount)}\n` +
-      `${dateText(
-        e.expense_date
-      )}\n\n` +
-      `The associated cash payment will also be removed.`
-    );
+` +
+    `${e.category}
+` +
+    `${money(e.amount)}
+` +
+    `${dateText(e.expense_date)}
 
+` +
+    `It will be removed from live totals but kept for audit history.`
+  );
 
   if (!ok)
     return;
 
-
   try {
+    let cashTx = state.ledger.find(
+      t =>
+        t.type === "expense_payment" &&
+        t.description === `Expense #${id}`
+    );
 
-    /*
-     * Find associated cash transaction.
-     */
-    let cashTx =
-      state.ledger.find(
-        t =>
-          t.type ===
-            "expense_payment" &&
-          t.description ===
-            `Expense #${id}`
-      );
-
-
-    /*
-     * Compatibility with old transactions.
-     */
     if (!cashTx) {
-
-      cashTx =
-        state.ledger.find(
-          t =>
-            t.type ===
-              "expense_payment" &&
-            t.match_id ===
-              e.match_id &&
-            t.from_member_id ===
-              e.paid_by &&
-            Number(t.amount) ===
-              Number(e.amount)
-        );
-
+      cashTx = state.ledger.find(
+        t =>
+          t.type === "expense_payment" &&
+          t.match_id === e.match_id &&
+          t.from_member_id === e.paid_by &&
+          Number(t.amount) === Number(e.amount)
+      );
     }
 
-
-    /*
-     * Delete cash transaction first.
-     */
     if (cashTx) {
-
       await requireOk(
         await sb
-          .from(
-            "cash_transactions"
-          )
-          .delete()
-          .eq(
-            "id",
-            cashTx.id
-          )
+          .from("cash_transactions")
+          .update({ ...auditDeleted() })
+          .eq("id", cashTx.id)
       );
-
     }
 
-
-    /*
-     * Delete expense.
-     */
     await requireOk(
       await sb
         .from("expenses")
-        .delete()
-        .eq(
-          "id",
-          id
-        )
+        .update({ ...auditDeleted() })
+        .eq("id", id)
     );
 
-
-    toast(
-      "Expense deleted"
-    );
-
+    toast("Expense deleted");
     await loadData();
 
   } catch (err) {
-
     console.error(err);
-
   }
 }
 
@@ -4427,99 +4393,25 @@ function closeModal() {
 
 
 /* ============================================================
-   41. LOGIN
+   41. IDENTITY / SWITCH USER EVENTS
 ============================================================ */
 
-$("loginForm")
+$("identityMember")
   ?.addEventListener(
-    "submit",
-    async e => {
-
-      e.preventDefault();
-
-
-      if (!sb) {
-
-        toast(
-          "Supabase is not configured."
-        );
-
-        return;
-      }
-
-
-      const email =
-        $("loginEmail")
-          ?.value
-          ?.trim();
-
-
-      const password =
-        $("loginPassword")
-          ?.value;
-
-
-      if (
-        !email ||
-        !password
-      ) {
-
-        toast(
-          "Enter your email and password."
-        );
-
-        return;
-      }
-
-
-      const { error } =
-        await sb.auth
-          .signInWithPassword({
-
-            email,
-
-            password
-
-          });
-
-
-      if (error) {
-
-        console.error(
-          "Login error:",
-          error
-        );
-
-        toast(
-          error.message
-        );
-
-      }
-
-    }
+    "change",
+    toggleNewIdentityName
   );
 
-
-/* ============================================================
-   42. LOGOUT
-============================================================ */
+$("identityForm")
+  ?.addEventListener(
+    "submit",
+    saveIdentity
+  );
 
 $("logoutBtn")
   ?.addEventListener(
     "click",
-    async () => {
-
-      if (!sb)
-        return;
-
-
-      await sb.auth.signOut();
-
-      toast(
-        "Signed out"
-      );
-
-    }
+    switchUser
   );
 
 
@@ -4681,7 +4573,9 @@ function exportCSV() {
       "Collected",
       "Expenses",
       "Balance",
-      "Notes"
+      "Notes",
+      "Added By",
+      "Last Edited By"
     ]
 
   ];
@@ -4721,7 +4615,11 @@ function exportCSV() {
 
         matchBalance(m),
 
-        m.notes || ""
+        m.notes || "",
+
+        m.created_by || "System",
+
+        m.updated_by || ""
 
       ]);
 

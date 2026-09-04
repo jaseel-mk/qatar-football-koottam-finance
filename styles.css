@@ -135,7 +135,7 @@ textarea::placeholder {
 
 
 /* =========================================================
-   4. LOGIN / AUTHENTICATION SCREEN
+   4. WHO ARE YOU? / IDENTITY SCREEN
    ========================================================= */
 
 .auth-shell {
@@ -238,6 +238,35 @@ textarea::placeholder {
 
   box-shadow:
     0 0 0 3px rgba(138, 21, 56, 0.08);
+}
+
+.auth-card select {
+  width: 100%;
+  padding: 12px 13px;
+  background: #fdfbfc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.auth-card select:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(138, 21, 56, 0.08);
+}
+
+.identity-card {
+  width: min(460px, 100%);
+}
+
+.identity-note {
+  margin: 16px 0 0;
+  line-height: 1.55;
+}
+
+.identity-warning {
+  margin: 14px 0 0;
+  line-height: 1.5;
 }
 
 
@@ -856,6 +885,42 @@ code {
   background: #fdf9fb;
 }
 
+
+
+/* =========================================================
+   AUDIT / ACTIVITY LABELS
+   ========================================================= */
+
+.audit-cell {
+  min-width: 145px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.audit-sub {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.audit-inline {
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+}
+
+.audit-panel {
+  margin: 12px 0 18px;
+  padding: 12px 14px;
+  background: var(--maroon-soft);
+  border-radius: 12px;
+  color: var(--maroon-dark);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.audit-panel strong {
+  display: block;
+  margin-bottom: 3px;
+}
 
 /* =========================================================
    19. REPORTS

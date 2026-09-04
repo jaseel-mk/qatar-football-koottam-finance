@@ -39,13 +39,14 @@
 
 
   <!-- =========================================================
-       LOGIN / AUTHENTICATION
+       WHO ARE YOU?
+       No password/login is required. The selected member name is
+       used only as an audit label for finance changes.
        ========================================================= -->
   <section id="authView" class="auth-shell">
 
-    <div class="auth-card">
+    <div class="auth-card identity-card">
 
-      <!-- Football logo -->
       <div class="brand-mark">⚽</div>
 
       <p class="eyebrow">
@@ -53,79 +54,67 @@
       </p>
 
       <h1>
-        Football Finance
+        Who are you?
       </h1>
 
       <p class="muted">
-        Shared match collections, expenses and
-        in-hand cash tracking.
+        Select your name so entries and changes can be recorded
+        against the person using the finance app.
       </p>
 
-
-      <!-- Login form -->
-      <form id="loginForm">
+      <form id="identityForm">
 
         <label>
-          Email
+          Your name
 
-          <input
-            id="loginEmail"
-            type="email"
-            autocomplete="email"
-            required
-            placeholder="you@example.com"
-          >
+          <select id="identityMember" required>
+            <option value="">Loading members...</option>
+          </select>
         </label>
 
-
-        <label>
-          Password
+        <label id="newIdentityWrap" class="hidden">
+          Add your name
 
           <input
-            id="loginPassword"
-            type="password"
-            autocomplete="current-password"
-            required
-            placeholder="••••••••"
+            id="newIdentityName"
+            type="text"
+            maxlength="100"
+            autocomplete="name"
+            placeholder="Enter your full name"
           >
         </label>
-
 
         <button
           class="primary full"
           type="submit"
         >
-          Sign in
+          Continue
         </button>
 
       </form>
 
-
-      <!--
-        app.js adds the "Forgot password?"
-        button below the login form.
-      -->
-
-
-      <p class="small muted">
-        Create your users in
-        Supabase Authentication → Users.
+      <p class="small muted identity-note">
+        If your name is not listed, choose
+        <strong>+ My name is not listed</strong>, enter your name,
+        and continue. Your name will be added to the member list.
       </p>
 
+      <p class="small warning identity-warning">
+        This is not a secure login. The selected name is used only
+        to record who added, edited or deleted finance entries.
+      </p>
 
-      <!-- Configuration warning -->
       <p
         id="configWarning"
         class="warning hidden"
       >
-        Add your Supabase URL and publishable/anon
-        key in <code>app.js</code> first.
+        Add your Supabase URL and publishable/anon key in
+        <code>app.js</code> first.
       </p>
 
     </div>
 
   </section>
-
 
 
   <!-- =========================================================
@@ -211,12 +200,13 @@
       </nav>
 
 
-      <!-- Sign out -->
+      <!-- Switch the person using the app -->
       <button
         id="logoutBtn"
         class="logout"
+        type="button"
       >
-        ↪ Sign out
+        ⇄ Switch user
       </button>
 
     </aside>
@@ -251,7 +241,7 @@
 
         <div class="top-actions">
 
-          <!-- Logged-in email -->
+          <!-- Current selected member -->
           <span
             id="userEmail"
             class="user-pill"
@@ -822,6 +812,7 @@
        - Transfer Cash
        - Add Member
        - View Match
+       - Other finance forms
        ========================================================= -->
 
   <div

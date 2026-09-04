@@ -1,115 +1,47 @@
 # Qatar Football Koottam Finance
 
-A mobile-first shared finance tracker using:
+A lightweight Supabase-backed finance tracker for Qatar Football Koottam.
 
-- GitHub Pages for free static hosting
-- Supabase Postgres + Auth for online shared storage
-- HTML/CSS/JavaScript frontend
-- Supabase JS v2 loaded through CDN
+## Modified user flow
 
-## 1. Create Supabase project
+Supabase Authentication has been removed. When the site opens, the user sees **Who are you?** and selects their member name. If their name is missing, they can choose **+ My name is not listed**, enter their name, and continue. The name is added to the `members` table automatically.
 
-Create a project at https://supabase.com/.
+The selected member is stored in the browser's local storage and is used to populate audit fields such as `created_by`, `updated_by`, and `deleted_by`.
 
-Open SQL Editor and run the complete `supabase.sql` file.
+> Important: this member selector is not secure authentication. Anyone who can open the app can choose another member's name. Use it only as a simple activity label for a trusted/private group.
 
-## 2. Create users
+## Files
 
-In Supabase:
+- `index.html` — application layout and Who are you? screen
+- `styles.css` — Qatar maroon UI styling
+- `app.js` — Supabase data operations, user selection, finance calculations and audit tracking
+- `supabase.sql` — database schema, migration, RLS policies, grants and sample data
+- `reset.html` — legacy compatibility page; password reset is no longer used
 
-Authentication → Users → Add user
+## Setup / upgrade
 
-Create accounts for the people who should access the app.
+1. Open your Supabase project.
+2. Go to **SQL Editor**.
+3. Run the complete `supabase.sql` file once. It is safe to run against the existing database because it uses `IF NOT EXISTS` and migration statements.
+4. Upload/replace `index.html`, `styles.css`, and `app.js` in your GitHub Pages repository.
+5. Hard refresh the website.
+6. Select your name on the Who are you? screen.
 
-Use email + password. If email confirmation is enabled, confirm the users or disable confirmation for a private internal app.
+## Audit fields
 
-## 3. Get browser credentials
+The four main tables contain:
 
-In Supabase Project Settings/API, copy:
+- `created_at`
+- `created_by`
+- `updated_at`
+- `updated_by`
+- `deleted_at`
+- `deleted_by`
 
-- Project URL
-- Publishable key (or legacy anon key)
+Matches, expenses and cash transactions use soft deletion. Deleted records remain in Supabase for audit history but are excluded from the live UI and finance totals.
 
-Do NOT use the `service_role`/secret key in the browser.
+Members are deactivated rather than physically deleted so historical expense and cash references remain valid.
 
-Open `app.js` and replace:
+## Security note
 
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_KEY = "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
-
-The publishable/anon key is designed to be used with RLS. The database policies in `supabase.sql` are what protect the tables.
-
-## 4. Test locally
-
-You can simply open `index.html` for a quick test, but using a local static server is more reliable.
-
-With Python installed:
-
-python -m http.server 8080
-
-Then open:
-
-http://localhost:8080
-
-## 5. GitHub
-
-Create a PUBLIC repository, for example:
-
-qatar-football-koottam-finance
-
-Upload:
-
-index.html
-styles.css
-app.js
-supabase.sql
-README.md
-.github/workflows/deploy.yml
-
-The workflow automatically deploys the static site to GitHub Pages when you push to main.
-
-## 6. Enable GitHub Pages
-
-Repository → Settings → Pages
-
-Under Build and deployment:
-
-Source: GitHub Actions
-
-Push to main.
-
-The Actions workflow should run and publish the site.
-
-Your URL will be similar to:
-
-https://YOUR-GITHUB-USERNAME.github.io/qatar-football-koottam-finance/
-
-## 7. Important security rule
-
-Never put a Supabase `service_role` key in `app.js`.
-
-Only use the publishable key/anon key.
-
-The app requires Supabase Auth before database access. RLS allows authenticated users to access the shared football finance tables.
-
-## 8. Current sample data
-
-The SQL file imports:
-
-Match #1 — 7 Aug — 14 players — QAR 140 — Ground QAR 150
-Match #2 — 12 Aug — 19 players — QAR 190 — Ground QAR 150 — Water QAR 12
-Match #3 — 14 Aug — 15 players — QAR 150 — Ground QAR 100
-
-It also creates ledger entries that reconcile the example sheet to:
-
-Jaseel — QAR 60
-Nashid — QAR 18
-Total — QAR 78
-
-The historical adjustments are explicitly labeled so you can remove/replace them once the real ledger is entered.
-
-## 9. Production recommendation
-
-For a larger group, tighten RLS so only an admin can edit members/settings and only approved members can edit finance records.
-
-For this small private group, the supplied policies allow any authenticated user to manage the shared finance records.
+The frontend uses a Supabase publishable/anon key. Because authentication was intentionally removed, the modified RLS policies permit the `anon` role to read and write the finance tables. Do not use a Supabase `service_role` key in `app.js`.
