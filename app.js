@@ -698,7 +698,7 @@ function cashByMember() {
 
   const out = {};
 
-  state.allMembers.forEach(
+  state.members.forEach(
     m => {
 
       out[m.id] = {
@@ -853,7 +853,7 @@ function renderDashboard() {
 
 
   const people =
-    cashByMember().filter(m => m.active === true && !m.deleted_at);
+    cashByMember();
 
 
   if ($("cashCards")) {
@@ -883,21 +883,16 @@ function renderDashboard() {
 
   if ($("cashStatus")) {
 
-    const cashAgrees = Math.abs(t.cash - t.net - state.ledger
-      .filter(x => x.type === "cash_adjustment")
-      .reduce((n, x) => n + (x.to_member_id ? Number(x.amount) : 0)
-        - (x.from_member_id ? Number(x.amount) : 0), 0)) < 0.005;
-
     $("cashStatus").innerHTML =
       `● ${
-        cashAgrees
-          ? "Records agree"
+        t.cash >= 0
+          ? "Balanced"
           : "Check cash"
       }`;
 
     $("cashStatus").className =
       `status ${
-        cashAgrees
+        t.cash >= 0
           ? "ok"
           : ""
       }`;
@@ -2513,7 +2508,7 @@ async function deleteMatch(id) {
 function renderCash() {
 
   const people =
-    cashByMember().filter(m => m.active === true && !m.deleted_at);
+    cashByMember();
 
 
   if ($("cashPeople")) {
