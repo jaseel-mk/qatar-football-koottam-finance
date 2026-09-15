@@ -675,7 +675,7 @@
   <p class="muted">Cash balances include all movements through the end of the selected date. Historical reports reflect currently saved records.</p>
   <p id="reportWarnings" class="warning" role="status"></p>
   <div class="report-actions"><button class="primary" data-report-export="copy">Copy group message</button><button class="secondary" data-report-export="pdf">Download PDF</button><button class="secondary" data-report-export="excel">Download Excel</button></div>
-  <article class="report-letterhead"><header><img src="assets/brand/qfk-logo.png" alt="QFK logo"><div><h3>QATAR FOOTBALL KOOTTAM</h3><p>FINANCE / MATCH REPORT</p></div></header><pre id="reportPreview" aria-live="polite"></pre></article>
+  <article class="report-letterhead"><header><img src="assets/brand/qfk-logo.png" alt="QFK logo"><div><h3>QATAR FOOTBALL KOOTTAM</h3><p>FINANCE / MATCH REPORT</p></div></header><div id="reportPreview" aria-live="polite"></div></article>
   <details><summary>View detailed report tables</summary><div id="reportDetails"></div></details>
 </section>
 
@@ -776,6 +776,7 @@
 <script src="vendor/jspdf.plugin.autotable.min.js"></script>
 <script src="vendor/exceljs.min.js"></script>
 <script src="app.js"></script>
+<script src="report-design.js"></script>
 <script src="reports.js"></script>
 
 </body>

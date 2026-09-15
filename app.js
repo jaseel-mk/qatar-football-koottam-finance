@@ -853,7 +853,7 @@ function renderDashboard() {
 
 
   const people =
-    cashByMember();
+    cashByMember().filter(m => m.active === true && !m.deleted_at);
 
 
   if ($("cashCards")) {
@@ -2513,7 +2513,7 @@ async function deleteMatch(id) {
 function renderCash() {
 
   const people =
-    cashByMember();
+    cashByMember().filter(m => m.active === true && !m.deleted_at);
 
 
   if ($("cashPeople")) {

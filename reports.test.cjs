@@ -8,7 +8,7 @@ const data={allMembers:[{id:'a',name:'Jaseel',active:false},{id:'b',name:'Nashid
 {type:'cash_adjustment',transaction_date:'2026-09-16',amount:999,to_member_id:'b'},
 {type:'cash_adjustment',transaction_date:'2026-09-15',amount:999,to_member_id:'b',deleted_at:'deleted'}]};
 const r=build(data,{matchId:'m'});
-assert.equal(r.opening,10000);assert.equal(r.closing,15000);assert.equal(r.difference,0);assert.equal(r.warnings.length,0);assert.deepEqual(r.members.map(x=>x.balance),[0,15000]);
+assert.equal(r.opening,10000);assert.equal(r.closing,15000);assert.equal(r.difference,0);assert.equal(r.warnings.length,0);assert.deepEqual(r.members.map(x=>x.balance),[15000]);
 const full=build(data,{start:'2026-09-15',end:'2026-09-15'});assert.equal(full.closing,r.closing);
 assert.throws(()=>build(data,{start:'2026-09-16',end:'2026-09-15'}));
 const broken=structuredClone(data);broken.ledger[1].amount=190;assert.ok(build(broken,{matchId:'m'}).warnings.length);assert.equal(build(broken,{matchId:'m'}).difference,-1000);

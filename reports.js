@@ -30,6 +30,7 @@
       const balance = rows => sum(rows, t => (t.to_member_id === m.id ? cents(t.amount) : 0) - (t.from_member_id === m.id ? cents(t.amount) : 0));
       return {...m, opening: balance(before), balance: balance(through)};
     });
+    const unlistedBalance = sum(members.filter(m => m.active !== true || m.deleted_at), m => m.balance);
     const warnings = [];
     if (income !== actualIncome) warnings.push('Collections differ from cash entries. Review collection amounts, recipients and dates.');
     if (spent !== actualExpense) warnings.push('Expenses differ from cash entries. Review payment amounts and dates.');
@@ -37,7 +38,7 @@
     if (sum(members,x=>x.balance) !== closing) warnings.push('Some cash is assigned to an unknown member.');
     if (match && matches.filter(x=>x.match_date===end).length > 1) warnings.push('Multiple matches share this date. Cash balances include the entire day.');
     if (match && expenses.some(x=>x.match_id===match.id && x.expense_date>end)) warnings.push('Later expenses are excluded from this match-day report. Use Full Reports to include them.');
-    return {match,start,end,opening,closing,income,spent,adjustments,other,difference,members,warnings,selectedMatches,selectedExpenses,period,ledger};
+    return {match,start,end,opening,closing,income,spent,adjustments,other,difference,unlistedBalance,members: members.filter(m => m.active === true && !m.deleted_at),warnings,selectedMatches,selectedExpenses,period,ledger};
   }
   root.QFKReports = {build,cents,movement};
   if (typeof module !== 'undefined') module.exports = root.QFKReports;
@@ -64,6 +65,7 @@ if (typeof window !== 'undefined') {
       ...(r.adjustments?['Cash adjustments: '+reportMoney(r.adjustments)]:[]),
       '', 'Total in-hand balance: '+reportMoney(r.closing),
       ...r.members.map(m=>m.name+': '+reportMoney(m.balance)),
+      ...(r.unlistedBalance?['Cash outside visible account list: '+reportMoney(r.unlistedBalance)]:[]),
       '', 'Cash balances: end of '+(r.end==='9999-12-31'?'latest recorded date':r.end),
       ...r.warnings.map(w=>'REVIEW: '+w)].join('\n');
   }
@@ -84,7 +86,7 @@ if (typeof window !== 'undefined') {
     try {
       currentReport=QFKReports.build(state,matchMode?{matchId:$('reportMatch').value}:{start:$('reportStart').value,end:$('reportEnd').value});
       if(matchMode && !currentReport.match) throw new Error('Add a match to generate a match report.');
-      $('reportPreview').textContent=reportMessage(currentReport);
+      $('reportPreview').innerHTML=qfkReportHTML(currentReport,currentReport.match?reportCollectors(currentReport.match,currentReport):'',reportName,reportMoney,esc);
       $('reportWarnings').textContent=currentReport.warnings.join(' ');
       $('reportDetails').innerHTML=reportTables(currentReport).map(([title,head,rows])=>`<h3>${esc(title)}</h3><div class="table-wrap"><table class="data-table"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):v)}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${head.length}">No records</td></tr>`}</tbody></table></div>`).join('');
       document.querySelectorAll('[data-report-export]').forEach(b=>b.disabled=false);
@@ -120,10 +122,10 @@ if (typeof window !== 'undefined') {
       const logo=new Image();logo.src='assets/brand/qfk-logo.png';await logo.decode();
       let y=48;
       const addTable=(head,body)=>{doc.autoTable({startY:y,head:[head],body:body.length?body:[['No records']],margin:{top:45,bottom:18},styles:{fontSize:9,overflow:'linebreak'},headStyles:{fillColor:[136,13,63]},didDrawPage:()=>{}});y=doc.lastAutoTable.finalY+12;};
-      if(r.match) { addTable(['Match report','QAR'],[['Previous balance',(r.opening/100).toFixed(2)],['Collected by',reportCollectors(r.match,r)],['Total collected',(r.income/100).toFixed(2)],...r.selectedExpenses.map(e=>[`${e.category} - paid by ${reportName(e.paid_by)}`,(Number(e.amount)).toFixed(2)]),['Total expenses',(r.spent/100).toFixed(2)],['Match balance',((r.income-r.spent)/100).toFixed(2)],['Other movements',(r.other/100).toFixed(2)],['Adjustments',(r.adjustments/100).toFixed(2)],['Total in hand',(r.closing/100).toFixed(2)],...r.members.map(m=>[m.name,(m.balance/100).toFixed(2)])]); }
+      if(r.match) { y=qfkMatchPDF(doc,r,reportCollectors(r.match,r),reportName,reportMoney); }
       else for(const [name,head,rows] of reportTables(r)) {if(y>245){doc.addPage();y=48;}doc.setFontSize(12);doc.text(name,14,y-3);addTable(head,rows);}
       if(r.warnings.length) addTable(['Review required'],r.warnings.map(w=>[w]));
-      const pages=doc.getNumberOfPages();for(let p=1;p<=pages;p++){doc.setPage(p);doc.addImage(logo,'PNG',14,8,22,22);doc.setTextColor(136,13,63);doc.setFontSize(14);doc.text('QATAR FOOTBALL KOOTTAM',40,17);doc.setFontSize(10);doc.text(title+' | '+period,40,25);doc.setDrawColor(136,13,63);doc.line(14,35,196,35);doc.setFontSize(8);doc.setTextColor(100);doc.text('QFK Finance | Balances at end of report date',14,287);doc.text(`${p} / ${pages}`,182,287);}
+      const pages=doc.getNumberOfPages();for(let p=1;p<=pages;p++){doc.setPage(p);doc.addImage(logo,'PNG',14,8,22,22);doc.setTextColor(136,13,63);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('QATAR FOOTBALL KOOTTAM',40,17);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('FINANCE / MATCH REPORT',40,25);doc.setFontSize(8);doc.text('Play | Connect | Grow',40,31);doc.setDrawColor(136,13,63);doc.line(14,35,196,35);doc.setFontSize(8);doc.setTextColor(100);doc.text('QFK Finance | Balances at end of report date',14,287);doc.text(`${p} / ${pages}`,182,287);}
       doc.save(filename+'.pdf');
     }catch(e){console.error(e);toast('Could not export report. '+e.message);}
   }

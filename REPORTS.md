@@ -8,7 +8,7 @@ Cash opening balance includes ledger entries before the start date. Closing cash
 
 Dates have no time or match-close snapshot in the existing database. Multiple matches on one date therefore share a day-end cash cutoff. Reports reflect the current saved records; editing or soft-deleting an old record changes a regenerated historical report.
 
-Transfers move balances between members and do not create income or expenses. All members, including inactive holders, remain in cash totals. Missing recipients, inconsistent totals and unknown holders are flagged for review; the report does not silently repair records.
+Transfers move balances between members and do not create income or expenses. Only active, non-deleted members appear in cash-holder lists. Historical cash remains in the group total; cash outside the visible account list is disclosed without account names. Missing recipients, inconsistent totals and unknown holders are flagged for review; the report does not silently repair records.
 
 Income currently means match collections, consistent with the existing data model. Adjustments are separate. No database migration is needed.
 
