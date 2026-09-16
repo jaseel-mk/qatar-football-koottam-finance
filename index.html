@@ -677,6 +677,22 @@
   <div class="report-actions"><button class="primary" data-report-export="copy">Copy group message</button><button class="secondary" data-report-export="pdf">Download PDF</button><button class="secondary" data-report-export="excel">Download Excel</button></div>
   <article class="report-letterhead"><header><img src="assets/brand/qfk-logo.png" alt="QFK logo"><div><h3>QATAR FOOTBALL KOOTTAM</h3><p>FINANCE / MATCH REPORT</p></div></header><div id="reportPreview" aria-live="polite"></div></article>
   <details><summary>View detailed report tables</summary><div id="reportDetails"></div></details>
+  <section class="backup-panel" aria-labelledby="backupHeading">
+    <h3 id="backupHeading">Backup</h3>
+    <p class="muted">Save all records, including hidden and deleted accounts. JSON can be restored; Excel is for viewing and keeping records.</p>
+    <div class="report-actions">
+      <label for="backupFormat">Backup format <select id="backupFormat"><option value="json">JSON (restorable)</option><option value="excel">Excel (.xlsx)</option></select></label>
+      <button id="backupDownload" class="primary" type="button">Download Backup</button>
+    </div>
+    <p id="backupStatus" role="status" aria-live="polite"></p>
+    <details><summary>Restore from JSON</summary>
+      <p>Restore records by their IDs. Matching records will be overwritten, including hidden/deleted status. Records added since the backup will remain. A safety JSON backup downloads before any changes.</p>
+      <label for="backupFile">Choose a QFK JSON backup</label>
+      <input id="backupFile" type="file" accept=".json,application/json">
+      <div id="backupPreview" aria-live="polite"></div>
+      <button id="backupRestore" class="secondary" type="button" disabled>Restore selected backup</button>
+    </details>
+  </section>
 </section>
 
     </main>
@@ -778,6 +794,7 @@
 <script src="app.js"></script>
 <script src="report-design.js"></script>
 <script src="reports.js"></script>
+<script src="backup.js"></script>
 
 </body>
 </html>
