@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "QFK Finance Classic",
+  "short_name": "QFK Finance",
+  "description": "Qatar Football Koottam finance tracker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8A1538",
+  "icons": [
+    {
+      "src": "assets/brand/qfk-logo.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
