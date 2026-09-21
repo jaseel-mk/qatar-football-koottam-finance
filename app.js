@@ -401,7 +401,7 @@ function showSidebarPlayer(index, resetTimer = true) {
 function startSidebarPlayerTimer() {
   clearInterval(sidebarPlayerTimer);
   restartPlayerProgress();
-  if (document.hidden) return;
+  if (document.hidden || !$("sidebarPlayerImage")) return;
   sidebarPlayerTimer = setInterval(
     () => showSidebarPlayer(sidebarPlayerIndex + 1, false),
     15000

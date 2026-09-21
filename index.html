@@ -29,7 +29,9 @@
   >
 
   <!-- Main stylesheet -->
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="sidebar-theme.css">
 
   <!-- Supabase JavaScript library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -137,14 +139,15 @@
         <div class="side-brand">
           <div class="side-crest"><img src="assets/brand/qfk-logo.png" alt="QFK logo"></div>
           <div class="side-brand-copy">
-            <strong>Qatar Football<br>Koottam <em>Finance</em></strong>
-            <small>Play <i></i> Connect <i></i> Grow</small>
+            <strong>QFK Finance</strong>
+            <small>Qatar Football Koottam</small>
           </div>
           <button id="sidebarClose" class="sidebar-close" type="button" aria-label="Close navigation">
             <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
           </button>
         </div>
 
+        <p class="nav-label">Workspace</p>
         <nav aria-label="Finance pages">
           <button data-page="dashboard" class="nav-item active" type="button">
             <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9 20v-6h6v6"/></svg><span>Dashboard</span>
@@ -163,20 +166,15 @@
           </button>
         </nav>
 
-        <section class="player-feature" aria-label="Featured football player">
-          <img id="sidebarPlayerImage" src="assets/sidebar/messi.jpeg" alt="Lionel Messi" width="272" height="230">
-          <div class="player-shade"></div>
-          <div class="player-copy" aria-live="polite">
-            <strong id="sidebarPlayerName">Lionel Messi</strong>
-            <p id="sidebarPlayerCaption">Small touches. Big moments.</p>
-          </div>
-          <div class="player-controls">
-            <button id="playerPrev" type="button" aria-label="Previous player"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
-            <div id="playerDots" class="player-dots" aria-label="Select player"></div>
-            <button id="playerNext" type="button" aria-label="Next player"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
-          </div>
-          <div class="player-progress" aria-hidden="true"><span id="playerProgress"></span></div>
-        </section>
+        <div class="sidebar-tools">
+          <p class="nav-label">Tools</p>
+          <button id="backupShortcut" class="nav-item" type="button"><svg viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></svg><span>Backup &amp; Restore</span></button>
+        </div>
+        <div class="sidebar-preferences">
+          <p class="sidebar-play">Play · Connect · Grow</p>
+          <label class="nav-label" for="themeSelect">Appearance</label>
+          <select id="themeSelect" aria-label="Theme"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select>
+        </div>
 
         <div class="sidebar-user">
           <span id="sidebarUserInitials" class="user-avatar">—</span>
@@ -186,7 +184,7 @@
           </button>
         </div>
 
-        <p class="sidebar-motto">Together for a better tomorrow</p>
+        
       </div>
     </aside>
 
@@ -800,6 +798,7 @@
 <script src="report-design.js"></script>
 <script src="reports.js"></script>
 <script src="backup.js"></script>
+<script src="sidebar.js"></script>
 
 </body>
 </html>
