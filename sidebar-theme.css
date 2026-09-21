@@ -1,0 +1,52 @@
+/* QFK light sidebar and app-wide theme surfaces. */
+:root { --accent-text:#8a1538; --surface-soft:#f7f5f6; }
+:root[data-theme=dark] {
+  --bg:#121318; --card:#1e2027; --text:#f0edf0; --muted:#b6afb9; --line:#393640;
+  --maroon-soft:#392532; --accent-text:#f3a9c1; --surface-soft:#262830;
+  --success:#79dba5; --success-soft:#18372b; --danger:#ff9a9a; --danger-soft:#42272d;
+  --warning:#efce83; --warning-soft:#3c3322; --shadow:0 12px 35px #0002;
+}
+.sidebar { background:var(--card); color:var(--text); border-right:1px solid var(--line); box-shadow:none; }
+.sidebar::before,.sidebar::after { display:none; }
+.sidebar-inner { padding:24px 18px 18px; gap:0; scrollbar-color:var(--line) transparent; }
+.side-brand { gap:12px; padding:0 0 24px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+.side-crest { width:52px; height:62px; border:0; padding:0; }
+.side-brand strong { font-size:19px; color:var(--text); letter-spacing:-.5px; text-transform:none; line-height:1.3; }
+.side-brand small { color:var(--muted); font-size:10px; letter-spacing:0; text-transform:none; margin-top:5px; }
+.nav-label { display:block; margin:0 12px 10px; font-size:10px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted); }
+.sidebar nav { gap:5px; }
+.nav-item { min-height:48px; padding:12px 14px; border-radius:10px; color:var(--text); font-size:14px; font-weight:500; gap:13px; }
+.nav-item svg { width:21px; height:21px; color:var(--muted); }
+.nav-item:hover { background:var(--surface-soft); color:var(--text); }
+.nav-item.active { background:#8a1538; color:#fff; }
+.nav-item.active svg { color:#fff; }
+.nav-item.active::before { display:none; }
+.sidebar-tools { border-top:1px solid var(--line); padding-top:20px; margin-top:20px; }
+.sidebar-preferences { margin-top:auto; padding-top:28px; padding-bottom:20px; }
+.sidebar-play { color:var(--accent-text); font-size:11px; text-align:center; padding:15px 0; letter-spacing:.5px; }
+#themeSelect { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; color:var(--text); background:var(--surface-soft); }
+.sidebar-user { flex-shrink:0; border-top:1px solid var(--line); padding:18px 0 0; margin-top:0; }
+.user-avatar { background:var(--maroon-soft); color:var(--accent-text); border:0; font-weight:600; }
+.sidebar-user-copy strong { color:var(--text); font-size:13px; }
+.sidebar-user-copy small { color:var(--muted); font-size:11px; }
+.logout,.sidebar-close { color:var(--muted); background:var(--surface-soft); }
+.logout:hover { color:var(--accent-text); background:var(--maroon-soft); }
+.sidebar-toggle { color:var(--accent-text); background:var(--card); }
+:focus-visible { outline:3px solid var(--accent-text); outline-offset:3px; }
+#backupHeading { scroll-margin-top:24px; }
+html[data-theme=dark] :is(.auth-card,.stat-card,.cash-card,.match-card,.table-wrap,.modal-box,.bottom-nav,.user-pill,.backup-panel) { background:var(--card); color:var(--text); border-color:var(--line); }
+html[data-theme=dark] .auth-wrap { background:var(--bg); }
+html[data-theme=dark] :is(input,select,textarea,th,.audit-box,.detail-item) { background:var(--surface-soft); color:var(--text); border-color:var(--line); }
+html[data-theme=dark] :is(tr:hover td,.match-card:hover) { background:var(--surface-soft); }
+html[data-theme=dark] :is(.secondary,.text-btn,.link-btn,.icon-btn,.badge,.tag,.bottom-nav button.active) { color:var(--accent-text); }
+html[data-theme=dark] .icon-btn {background:var(--card);}
+html[data-theme=dark] .secondary { background:var(--maroon-soft); }
+html[data-theme=dark] .warning { color:var(--warning); }
+html[data-theme=dark] :is(.auth-card p,.eyebrow) { color:var(--muted); }
+html[data-theme=dark] .report-letterhead { background:var(--card); color:var(--text); border-color:var(--line); }
+html[data-theme=dark] :is(.report-letterhead h3,#reportPreview h4,.report-opening strong) { color:var(--accent-text); }
+html[data-theme=dark] .report-opening { background:var(--maroon-soft); }
+html[data-theme=dark] :is(.report-date,.report-row small,.report-letterhead header p) { color:var(--muted); }
+html[data-theme=dark] .report-row { border-color:var(--line); }
+@media(max-width:850px) { .sidebar-inner { padding-top:max(20px,env(safe-area-inset-top)); padding-bottom:max(20px,env(safe-area-inset-bottom)); } .side-brand {gap:8px;} .side-brand strong {font-size:17px;} .side-brand small {font-size:9px;} .sidebar-close {flex-shrink:0;} }
+@media(prefers-reduced-motion:reduce) { html {scroll-behavior:auto;} .sidebar,.sidebar-backdrop {transition:none;} }
