@@ -9,7 +9,7 @@ interface DesignDetailProps {
 
 export function DesignDetail({ spec, onBack }: DesignDetailProps) {
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
+    <div className="qfk-ui min-h-screen bg-neutral-950 text-white">
       {/* Top bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-800 bg-neutral-950/90 px-4 py-3 backdrop-blur-md sm:px-8">
         <button
