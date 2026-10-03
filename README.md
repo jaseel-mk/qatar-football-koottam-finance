@@ -45,3 +45,7 @@ Members are deactivated rather than physically deleted so historical expense and
 ## Security note
 
 The frontend uses a Supabase publishable/anon key. Because authentication was intentionally removed, the modified RLS policies permit the `anon` role to read and write the finance tables. Do not use a Supabase `service_role` key in `app.js`.
+
+## Matchday Studio
+
+The sidebar opens the cloud-backed formation and poster module. See [MATCHDAY-INTEGRATION.md](MATCHDAY-INTEGRATION.md) for build, configuration, database and validation instructions. The previous local studio remains available at studio/index.html.
