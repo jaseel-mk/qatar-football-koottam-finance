@@ -23,7 +23,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
+    <div className="qfk-ui min-h-screen bg-neutral-950 text-white">
       {/* Top navigation */}
       <header className="sticky top-0 z-30 border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
@@ -35,6 +35,16 @@ export default function App() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
+            <label className="flex items-center gap-2 px-2 text-xs text-neutral-400">
+              Theme
+              <select id="themeSelect" aria-label="Theme" className="qfk-theme-select"
+                defaultValue={window.QFKTheme?.get() || 'system'}
+                onChange={(event) => window.QFKTheme?.set(event.target.value)}>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+            </label>
             <a href="../index.html" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-neutral-300 hover:bg-neutral-800">QFK Finance</a>
             <NavBtn label="Formation Setup" active={view === 'formation'} onClick={() => setView('formation')} />
             <NavBtn label="Poster Gallery" active={view === 'gallery'} onClick={() => setView('gallery')} />
