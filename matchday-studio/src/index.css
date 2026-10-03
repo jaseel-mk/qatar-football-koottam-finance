@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Shared QFK Finance palette. */
+:root {
+  /* Qatar-inspired primary colors */
+  --maroon: #8a1538;
+  --maroon-dark: #6f102d;
+  --maroon-deep: #4a0a1f;
+  --maroon-soft: #f8e8ee;
+
+  /* General colors */
+  --white: #ffffff;
+  --bg: #f7f5f6;
+  --card: #ffffff;
+
+  --text: #21151a;
+  --muted: #766c70;
+  --line: #e7dfe3;
+
+  /* Status colors */
+  --success: #19864a;
+  --success-soft: #eaf6ef;
+
+  --danger: #c94242;
+  --danger-soft: #ffe9e9;
+
+  --warning: #9a6b00;
+  --warning-soft: #fff5d8;
+
+  /* Shadows */
+  --shadow: 0 12px 35px rgba(80, 15, 38, 0.08);
+  --shadow-strong: 0 30px 70px rgba(40, 5, 18, 0.18);
+
+  /* Border radius */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+}
+/* QFK light sidebar and app-wide theme surfaces. */
+:root { --accent-text:#8a1538; --surface-soft:#f7f5f6; }
+:root[data-theme=dark] {
+  --bg:#121318; --card:#1e2027; --text:#f0edf0; --muted:#b6afb9; --line:#393640;
+  --maroon-soft:#392532; --accent-text:#f3a9c1; --surface-soft:#262830;
+  --success:#79dba5; --success-soft:#18372b; --danger:#ff9a9a; --danger-soft:#42272d;
+  --warning:#efce83; --warning-soft:#3c3322; --shadow:0 12px 35px #0002;
+}
+
+:root { font-family: 'Inter', system-ui, sans-serif; }
+body { background:var(--bg); color:var(--text); }
+.qfk-ui { background:var(--bg); color:var(--text); }
+.qfk-ui header { box-shadow:var(--shadow); }
+.qfk-ui table { background:var(--card); }
+.qfk-ui tbody tr:hover { background:var(--surface-soft); }
+.qfk-ui :is(input,select,textarea):not(svg *, .qfk-pitch *) { color:var(--text); background:var(--surface-soft); border-color:var(--line); }
+.qfk-theme-select { border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+:focus-visible { outline:3px solid var(--accent-text); outline-offset:3px; }
+.qfk-ui :is(.bg-neutral-950):not(svg *, .qfk-pitch *) { background:var(--bg); }
+.qfk-ui :is(.bg-neutral-950\/95,.bg-neutral-950\/90):not(svg *, .qfk-pitch *) { background:var(--card); }
+.qfk-ui :is(.bg-neutral-900):not(svg *, .qfk-pitch *) { background:var(--card); }
+.qfk-ui :is(.bg-neutral-800,.bg-neutral-700,.bg-neutral-900\/50):not(svg *, .qfk-pitch *) { background:var(--surface-soft); }
+.qfk-ui :is(.text-white,.text-neutral-200,.text-neutral-300,.text-neutral-950,.text-neutral-800):not(svg *, .qfk-pitch *) { color:var(--text); }
+.qfk-ui :is(.text-neutral-400,.text-neutral-500,.text-neutral-600):not(svg *, .qfk-pitch *) { color:var(--muted); }
+.qfk-ui :is(.border-neutral-600,.border-neutral-700,.border-neutral-800):not(svg *, .qfk-pitch *) { border-color:var(--line); }
+.qfk-ui :is(.ring-neutral-800):not(svg *, .qfk-pitch *) { --tw-ring-color:var(--line); }
+.qfk-ui :is(.divide-neutral-800):not(svg *, .qfk-pitch *) { --tw-divide-opacity:1; }
+.qfk-ui .divide-neutral-800 > :not([hidden]) ~ :not([hidden]) { border-color:var(--line); }
+.qfk-ui :is(.text-amber-300,.text-amber-400,.text-amber-500):not(svg *, .qfk-pitch *) { color:var(--accent-text); }
+.qfk-ui :is(.bg-amber-500):not(svg *, .qfk-pitch *) { background:var(--maroon); color:#fff; }
+.qfk-ui :is(.bg-amber-900\/50):not(svg *, .qfk-pitch *) { background:var(--maroon-soft); }
+.qfk-ui .bg-amber-500 :is(span,svg):not(svg *) { color:inherit; }
+.qfk-ui :is(.text-green-300,.text-green-400):not(svg *, .qfk-pitch *) { color:var(--success); }
+.qfk-ui :is(.text-red-300,.text-red-400):not(svg *, .qfk-pitch *) { color:var(--danger); }
+.qfk-ui :is(.bg-green-900\/50):not(svg *, .qfk-pitch *) { background:var(--success-soft); }
+.qfk-ui :is(.bg-green-600,.bg-red-600,.bg-red-700,.bg-blue-600) { color:#fff; }
+.qfk-ui .hover\:bg-amber-400:hover { background:var(--maroon-dark); color:#fff; }
+.qfk-ui :is(.hover\:bg-neutral-800,.hover\:bg-neutral-700,.hover\:bg-neutral-600,.hover\:bg-neutral-900\/50):hover:not(svg *, .qfk-pitch *) { background:var(--surface-soft); color:var(--text); }
+.qfk-ui .hover\:text-white:hover:not(svg *, .qfk-pitch *) { color:var(--text); }
+.scrollbar-thin::-webkit-scrollbar { height:4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background:var(--line); border-radius:2px; }
+.qfk-ui .bg-green-600:not(svg *, .qfk-pitch *) { background:var(--maroon); color:#fff; }
+.qfk-ui .hover\:bg-green-500:hover:not(svg *, .qfk-pitch *) { background:var(--maroon-dark); color:#fff; }
+.qfk-ui :is(.bg-red-600,.bg-red-700):not(svg *, .qfk-pitch *) { background:var(--danger); color:#fff; }
