@@ -281,7 +281,7 @@ function TeamPitch({
       </div>
       <div
         ref={pitchRef}
-        className="relative w-full overflow-hidden rounded-lg bg-green-700 touch-none select-none"
+        className="qfk-pitch relative w-full overflow-hidden rounded-lg bg-green-700 touch-none select-none"
         style={{ aspectRatio: '3/4' }}
       >
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="none">
