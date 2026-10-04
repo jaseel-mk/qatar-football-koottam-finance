@@ -45,7 +45,7 @@ export function PosterSVG({ data, theme, width = 600, height = 800 }: PosterSVGP
       height={height}
       viewBox={`0 0 ${W} ${H}`}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ width, height }}
+      style={{ width, maxWidth: '100%', height: 'auto', aspectRatio: `${W}/${H}` }}
     >
       <ThemeBackground theme={theme} />
       <ThemeContent data={data} theme={theme} />
@@ -257,9 +257,7 @@ const ivoryColor = '#F4EBDD';
 function Header({ data, gold = goldColor, ivory = ivoryColor }: { data: PosterData; gold?: string; ivory?: string }) {
   return (
     <g transform={`translate(${W/2}, ${SAFE + 20})`}>
-      <foreignObject x="-50" y="0" width="100" height="100">
-        <div style={{ width: 100, height: 100 }}><QFKCrest size={100} /></div>
-      </foreignObject>
+      <g transform="translate(-50, 0)"><QFKCrest size={100} /></g>
       <text x={-W/2 + SAFE + 10} y="40" fontSize="32" fontWeight="700" fill={gold}
         fontFamily="'Oswald', sans-serif" letterSpacing="2">
         MATCH {String(data.matchNumber).padStart(3, '0')}

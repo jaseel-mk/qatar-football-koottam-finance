@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { QfkPlayer, SavedFormation, QfkMatch, MatchTeam, MatchPlayer, FormationPosition } from '@/lib/formation-types';
-import { resolveAutoTheme } from '@/lib/formation-types';
+import type { QfkPlayer, SavedFormation, MatchTeam, MatchPlayer } from '@/lib/formation-types';
 import type { FormationDraftPosition } from '@/lib/formation-types';
 import { FormationDashboard } from '@/components/formation/FormationDashboard';
 import type { MatchWithTeams } from '@/components/formation/FormationDashboard';
@@ -12,7 +11,6 @@ import { FormationBuilder } from '@/components/formation/FormationBuilder';
 import type { BuilderPlayer } from '@/components/formation/FormationBuilder';
 import { PosterPreview } from '@/components/formation/PosterPreview';
 import type { PosterData } from '@/components/formation/PosterSVG';
-import { QFKCrest } from '@/components/QFKCrest';
 import { PlayersManager } from '@/components/formation/PlayersManager';
 
 type View = 'dashboard' | 'create' | 'edit' | 'builder' | 'poster' | 'formations' | 'players';
@@ -328,8 +326,6 @@ export function FormationSetup() {
       .select('*')
       .eq('match_id', match.id);
 
-    const teamA = match.teams.find((t) => t.side === 'A');
-    const teamB = match.teams.find((t) => t.side === 'B');
 
     let builderList: BuilderPlayer[] = [];
     if (matchPlayers && matchPlayers.length > 0) {
@@ -519,7 +515,7 @@ export function FormationSetup() {
       team_b_text: editingMatch.teams.find((t) => t.side === 'B')?.text_color,
       team_b_gk: editingMatch.teams.find((t) => t.side === 'B')?.goalkeeper_color,
       team_b_formation_id: editingMatch.teams.find((t) => t.side === 'B')?.formation_id ?? '',
-    } : undefined;
+    } : { match_number: Math.max(0, ...matches.map(match => match.match_number)) + 1 };
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">

@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import type { MatchPlayer, SavedFormation, Side, PlayerStatus } from '@/lib/formation-types';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import type { SavedFormation, Side, PlayerStatus } from '@/lib/formation-types';
 import { POSITION_OPTIONS } from '@/lib/formation-types';
 
 interface BuilderPlayer {
@@ -44,8 +44,8 @@ export function FormationBuilder(props: FormationBuilderProps) {
   const teamASubs = players.filter((p) => p.team === 'A' && p.status === 'substitute');
   const teamBSubs = players.filter((p) => p.team === 'B' && p.status === 'substitute');
 
-  const teamASlots = props.teamAFormation?.positions ?? [];
-  const teamBSlots = props.teamBFormation?.positions ?? [];
+  const teamASlots = useMemo(() => props.teamAFormation?.positions ?? [], [props.teamAFormation]);
+  const teamBSlots = useMemo(() => props.teamBFormation?.positions ?? [], [props.teamBFormation]);
 
   const filledA = teamAStarters.length;
   const totalA = teamASlots.length;
@@ -58,6 +58,10 @@ export function FormationBuilder(props: FormationBuilderProps) {
     if (!draggingId) return;
     const dragged = players.find((p) => p.id === draggingId);
     if (!dragged) return;
+    if (dragged.team === team && dragged.status === 'starter' && dragged.slot_index === slotIndex) {
+      setDraggingId(null);
+      return;
+    }
 
     // Check if destination slot already has a player
     const occupant = players.find(
@@ -267,7 +271,7 @@ interface TeamPitchProps {
 
 function TeamPitch({
   team, name, slots, starters, primary, secondary, textColor, gkColor,
-  filled, total, onSlotDrop, draggingId, onPlayerDragStart, onEditPlayer, editingPlayerId, onUpdatePlayer,
+  filled, total, onSlotDrop, onPlayerDragStart, onEditPlayer, editingPlayerId, onUpdatePlayer,
 }: TeamPitchProps) {
   const pitchRef = useRef<HTMLDivElement>(null);
 
