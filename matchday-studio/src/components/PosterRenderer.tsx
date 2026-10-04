@@ -172,11 +172,7 @@ export function PosterRenderer({
         <g transform={`translate(${W / 2}, ${safe + 40})`}>
           {/* Crest */}
           <g transform="translate(-60, 0) scale(1.2)">
-            <foreignObject x="0" y="0" width="100" height="100">
-              <div style={{ width: 100, height: 100 }}>
-                <QFKCrest size={100} />
-              </div>
-            </foreignObject>
+            <QFKCrest size={100} />
           </g>
 
           {/* Match number */}
