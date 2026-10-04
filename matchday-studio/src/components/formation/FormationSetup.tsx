@@ -578,9 +578,10 @@ export function FormationSetup() {
             </button>
           </div>
         </div>
-        <PlayersManager players={players} onAdd={handleAddPlayer} onSelect={addPlayerToLineup} selectedIds={builderPlayers.map(p => p.player_id)} />
         <FormationBuilder
           players={builderPlayers}
+          roster={players}
+          playerForm={<PlayersManager players={[]} onAdd={handleAddPlayer} onSelect={addPlayerToLineup} compact />}
           onChange={handleBuilderChange}
           teamAFormation={formA}
           teamBFormation={formB}

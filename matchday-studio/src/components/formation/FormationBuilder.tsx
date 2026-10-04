@@ -1,538 +1,153 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
-import type { SavedFormation, Side, PlayerStatus } from '@/lib/formation-types';
+import { useRef, useState } from 'react';
+import type { ReactNode, PointerEvent } from 'react';
+import type { SavedFormation, Side, PlayerStatus, QfkPlayer } from '@/lib/formation-types';
 import { POSITION_OPTIONS } from '@/lib/formation-types';
+import { placePlayer } from '@/lib/lineup-placement';
 
-interface BuilderPlayer {
-  id: string;
-  player_id: string;
-  name: string;
-  jersey_number: number;
-  team: Side | null;
-  position: string;
-  slot_index: number;
-  status: PlayerStatus;
+export interface BuilderPlayer {
+  id: string; player_id: string; name: string; jersey_number: number;
+  team: Side | null; position: string; slot_index: number; status: PlayerStatus;
 }
-
 interface FormationBuilderProps {
   players: BuilderPlayer[];
   onChange: (players: BuilderPlayer[]) => void;
-  teamAFormation: SavedFormation | null;
-  teamBFormation: SavedFormation | null;
-  teamAName: string;
-  teamBName: string;
-  teamAPrimary: string;
-  teamASecondary: string;
-  teamAText: string;
-  teamAGK: string;
-  teamBPrimary: string;
-  teamBSecondary: string;
-  teamBText: string;
-  teamBGK: string;
+  roster?: QfkPlayer[];
+  playerForm?: ReactNode;
+  teamAFormation: SavedFormation | null; teamBFormation: SavedFormation | null;
+  teamAName: string; teamBName: string;
+  teamAPrimary: string; teamASecondary: string; teamAText: string; teamAGK: string;
+  teamBPrimary: string; teamBSecondary: string; teamBText: string; teamBGK: string;
 }
-
-export type { BuilderPlayer };
 
 export function FormationBuilder(props: FormationBuilderProps) {
   const { players, onChange } = props;
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'players' | 'pitch' | 'subs'>('pitch');
-
-  const unassigned = players.filter((p) => p.team === null || p.status === 'unassigned');
-  const teamAStarters = players.filter((p) => p.team === 'A' && p.status === 'starter');
-  const teamBStarters = players.filter((p) => p.team === 'B' && p.status === 'starter');
-  const teamASubs = players.filter((p) => p.team === 'A' && p.status === 'substitute');
-  const teamBSubs = players.filter((p) => p.team === 'B' && p.status === 'substitute');
-
-  const teamASlots = useMemo(() => props.teamAFormation?.positions ?? [], [props.teamAFormation]);
-  const teamBSlots = useMemo(() => props.teamBFormation?.positions ?? [], [props.teamBFormation]);
-
-  const filledA = teamAStarters.length;
-  const totalA = teamASlots.length;
-  const filledB = teamBStarters.length;
-  const totalB = teamBSlots.length;
-
-  const handlePlayerDragStart = (id: string) => setDraggingId(id);
-
-  const handleSlotDrop = useCallback((team: Side, slotIndex: number) => {
-    if (!draggingId) return;
-    const dragged = players.find((p) => p.id === draggingId);
-    if (!dragged) return;
-    if (dragged.team === team && dragged.status === 'starter' && dragged.slot_index === slotIndex) {
-      setDraggingId(null);
-      return;
-    }
-
-    // Check if destination slot already has a player
-    const occupant = players.find(
-      (p) => p.team === team && p.status === 'starter' && p.slot_index === slotIndex && p.id !== draggingId,
-    );
-
-    if (occupant) {
-      // Swap: move occupant to dragged player's old slot
-      const newPlayers = players.map((p) => {
-        if (p.id === draggingId) {
-          return {
-            ...p,
-            team,
-            status: 'starter' as PlayerStatus,
-            slot_index: slotIndex,
-            position: team === 'A' ? teamASlots[slotIndex]?.position_code ?? 'GK' : teamBSlots[slotIndex]?.position_code ?? 'GK',
-          };
-        }
-        if (p.id === occupant.id) {
-          return {
-            ...p,
-            team: dragged.team,
-            status: dragged.status,
-            slot_index: dragged.slot_index,
-            position: dragged.position,
-          };
-        }
-        return p;
-      });
-      onChange(newPlayers);
-    } else {
-      const newPlayers = players.map((p) => {
-        if (p.id === draggingId) {
-          return {
-            ...p,
-            team,
-            status: 'starter' as PlayerStatus,
-            slot_index: slotIndex,
-            position: team === 'A' ? teamASlots[slotIndex]?.position_code ?? 'GK' : teamBSlots[slotIndex]?.position_code ?? 'GK',
-          };
-        }
-        return p;
-      });
-      onChange(newPlayers);
-    }
-    setDraggingId(null);
-  }, [draggingId, players, onChange, teamASlots, teamBSlots]);
-
-  const handleUnassignedDrop = useCallback(() => {
-    if (!draggingId) return;
-    onChange(players.map((p) =>
-      p.id === draggingId ? { ...p, team: null, status: 'unassigned' as PlayerStatus, slot_index: 0 } : p,
-    ));
-    setDraggingId(null);
-  }, [draggingId, players, onChange]);
-
-  const handleSubDrop = useCallback((team: Side) => {
-    if (!draggingId) return;
-    onChange(players.map((p) =>
-      p.id === draggingId ? { ...p, team, status: 'substitute' as PlayerStatus, slot_index: 0 } : p,
-    ));
-    setDraggingId(null);
-  }, [draggingId, players, onChange]);
-
-  const updatePlayer = (id: string, field: keyof BuilderPlayer, value: string | number) => {
-    onChange(players.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileTeam, setMobileTeam] = useState<Side>('A');
+  const [message, setMessage] = useState('');
+  const gesture = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const allPlayers = [...players, ...(props.roster ?? []).filter(p => !players.some(bp => bp.player_id === p.id)).map(p => ({
+    id: `temp-${p.id}`, player_id: p.id, name: p.name, jersey_number: p.jersey_number ?? 0,
+    team: null, position: 'GK', slot_index: 0, status: 'unassigned' as const,
+  }))];
+  const selected = allPlayers.find(p => p.id === selectedId);
+  const slots = { A: props.teamAFormation?.positions ?? [], B: props.teamBFormation?.positions ?? [] };
+  const name = (team: Side) => team === 'A' ? props.teamAName : props.teamBName;
+  const select = (id: string) => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    setSelectedId(current => current === id ? null : id);
+    setMessage('');
   };
-
-  const removePlayer = (id: string) => {
-    onChange(players.filter((p) => p.id !== id));
+  const place = (id: string, team: Side | null, slot?: number) => {
+    const source = allPlayers.find(p => p.id === id);
+    if (!source) return;
+    const current = players.some(p => p.id === id) ? players : [...players, source];
+    const result = placePlayer(current, id, team, slot, slots);
+    if (result !== current || current !== players) onChange(result);
+    setSelectedId(null);
+    setMessage(`${source.name} ${team ? slot === undefined ? `added to ${name(team)} substitutes` : `placed in ${name(team)} — ${slots[team][slot]?.label ?? ''}` : 'moved to available players'}.`);
   };
-
-  return (
-    <div className="space-y-4" onPointerUp={event => {
-      if (!draggingId) return;
-      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-lineup-target]');
-      if (!target) return;
-      const team = target.dataset.team as Side;
-      if (target.dataset.lineupTarget === 'slot') handleSlotDrop(team, Number(target.dataset.slot));
-      else if (target.dataset.lineupTarget === 'sub') handleSubDrop(team);
-      else handleUnassignedDrop();
-    }}>
-      {/* Mobile tabs */}
-      <div className="flex gap-1 rounded-lg bg-neutral-900 p-1 md:hidden">
-        {(['players', 'pitch', 'subs'] as const).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold capitalize ${
-              activeTab === tab ? 'bg-amber-500 text-neutral-950' : 'text-neutral-400'
-            }`}>
-            {tab === 'subs' ? 'Substitutes' : tab}
-          </button>
-        ))}
-      </div>
-
-      <p className="hidden text-xs text-neutral-400 md:block">Drag a player onto a position on either pitch. Click a player, then a position to assign without dragging.</p>
-      <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_180px]">
-        {/* Players panel */}
-        <div className={`${activeTab !== 'players' ? 'hidden md:block' : ''} space-y-2 md:sticky md:top-24 md:self-start`}>
-          <div data-lineup-target="unassigned" className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
-            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-500">
-              Available Players ({unassigned.length})
-            </h4>
-            <div className="space-y-1 max-h-[400px] overflow-y-auto">
-              {unassigned.map((p) => (
-                <PlayerChip key={p.id} player={p} onDragStart={handlePlayerDragStart}
-                  onEdit={() => setEditingPlayerId(editingPlayerId === p.id ? null : p.id)}
-                  isEditing={editingPlayerId === p.id}
-                  onUpdate={updatePlayer} onRemove={removePlayer}
-                />
-              ))}
-              {unassigned.length === 0 && (
-                <p className="py-4 text-center text-xs text-neutral-500">All players assigned</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Pitch */}
-        <div className={`${activeTab !== 'pitch' ? 'hidden md:block' : ''} min-w-0`}>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Team A pitch */}
-            <TeamPitch
-              team="A"
-              name={props.teamAName}
-              slots={teamASlots}
-              starters={teamAStarters}
-              primary={props.teamAPrimary}
-              secondary={props.teamASecondary}
-              textColor={props.teamAText}
-              gkColor={props.teamAGK}
-              filled={filledA} total={totalA}
-              onSlotDrop={handleSlotDrop}
-              draggingId={draggingId}
-              onPlayerDragStart={handlePlayerDragStart}
-              onEditPlayer={setEditingPlayerId}
-              editingPlayerId={editingPlayerId}
-              onUpdatePlayer={updatePlayer}
-            />
-            {/* Team B pitch */}
-            <TeamPitch
-              team="B"
-              name={props.teamBName}
-              slots={teamBSlots}
-              starters={teamBStarters}
-              primary={props.teamBPrimary}
-              secondary={props.teamBSecondary}
-              textColor={props.teamBText}
-              gkColor={props.teamBGK}
-              filled={filledB} total={totalB}
-              onSlotDrop={handleSlotDrop}
-              draggingId={draggingId}
-              onPlayerDragStart={handlePlayerDragStart}
-              onEditPlayer={setEditingPlayerId}
-              editingPlayerId={editingPlayerId}
-              onUpdatePlayer={updatePlayer}
-            />
-          </div>
-
-          {/* Unassigned drop zone */}
-          <DropZone
-            label="Drop here to unassign"
-            onDrop={handleUnassignedDrop}
-            isActive={!!draggingId}
-          />
-        </div>
-
-        {/* Substitutes panel */}
-        <div className={`${activeTab !== 'subs' ? 'hidden md:grid' : 'grid'} gap-2 md:col-span-2 md:grid-cols-2 xl:col-span-1 xl:grid-cols-1 xl:self-start`}>
-          <SubPanel team="A" name={props.teamAName} subs={teamASubs}
-            primary={props.teamAPrimary} textColor={props.teamAText}
-            onDrop={() => handleSubDrop('A')} isActive={!!draggingId}
-            onDragStart={handlePlayerDragStart}
-            onEdit={setEditingPlayerId} editingId={editingPlayerId}
-            onUpdate={updatePlayer} onRemove={removePlayer}
-          />
-          <SubPanel team="B" name={props.teamBName} subs={teamBSubs}
-            primary={props.teamBPrimary} textColor={props.teamBText}
-            onDrop={() => handleSubDrop('B')} isActive={!!draggingId}
-            onDragStart={handlePlayerDragStart}
-            onEdit={setEditingPlayerId} editingId={editingPlayerId}
-            onUpdate={updatePlayer} onRemove={removePlayer}
-          />
-        </div>
-      </div>
+  const start = (event: PointerEvent<HTMLElement>, id: string) => {
+    if (event.button !== 0) return;
+    gesture.current = { id, x: event.clientX, y: event.clientY, moved: false };
+    suppressClick.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const move = (event: PointerEvent<HTMLElement>) => {
+    const g = gesture.current;
+    if (!g || Math.hypot(event.clientX - g.x, event.clientY - g.y) < 8) return;
+    g.moved = true;
+    setSelectedId(g.id);
+  };
+  const finish = (event: PointerEvent<HTMLElement>) => {
+    const g = gesture.current;
+    gesture.current = null;
+    if (!g?.moved) return;
+    suppressClick.current = true;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-lineup-target]');
+    if (!target) { setMessage('Tap a position to place the selected player.'); return; }
+    const team = target.dataset.team as Side;
+    place(g.id, target.dataset.lineupTarget === 'unassigned' ? null : team,
+      target.dataset.lineupTarget === 'slot' ? Number(target.dataset.slot) : undefined);
+  };
+  const sourceProps = (id: string) => ({
+    onPointerDown: (e: PointerEvent<HTMLElement>) => start(e, id),
+    onPointerMove: move, onPointerUp: finish,
+    onPointerCancel: () => { gesture.current = null; suppressClick.current = false; },
+  });
+  const destinationClick = (team: Side, slot: number, occupant?: BuilderPlayer) => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    if (selectedId && selectedId !== occupant?.id) place(selectedId, team, slot);
+    else if (occupant) select(occupant.id);
+  };
+  const updateSelected = (field: 'name' | 'jersey_number' | 'position', value: string | number) => {
+    if (!selected) return;
+    const current = players.some(p => p.id === selected.id) ? players : [...players, selected];
+    onChange(current.map(p => p.id === selected.id ? { ...p, [field]: value } : p));
+  };
+  return <div className="space-y-3">
+    <p className="text-xs text-neutral-400">Drag a player onto the pitch, or tap a name then a position. Tap another player to swap. Switch teams to move between pitches.</p>
+    <div role="status" className="rounded-lg border border-neutral-700 bg-neutral-900 p-2 text-sm">
+      {selected ? <><strong>{selected.name}</strong> selected — tap a position or drag onto the pitch. <button className="ml-2 underline" onClick={() => setSelectedId(null)}>Cancel selection</button></> : message || 'Select a player from the list or pitch.'}
     </div>
-  );
-}
-
-interface TeamPitchProps {
-  team: Side;
-  name: string;
-  slots: { position_code: string; label: string; x: number; y: number; display_order: number }[];
-  starters: BuilderPlayer[];
-  primary: string;
-  secondary: string;
-  textColor: string;
-  gkColor: string;
-  filled: number;
-  total: number;
-  onSlotDrop: (team: Side, slotIndex: number) => void;
-  draggingId: string | null;
-  onPlayerDragStart: (id: string) => void;
-  onEditPlayer: (id: string | null) => void;
-  editingPlayerId: string | null;
-  onUpdatePlayer: (id: string, field: keyof BuilderPlayer, value: string | number) => void;
-}
-
-function TeamPitch({
-  team, name, slots, starters, primary, secondary, textColor, gkColor,
-  filled, total, onSlotDrop, onPlayerDragStart, onEditPlayer, editingPlayerId, onUpdatePlayer,
-}: TeamPitchProps) {
-  const pitchRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-2">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-bold text-white">{name}</span>
-        <span className={`text-[10px] font-semibold ${filled === total ? 'text-green-400' : 'text-amber-400'}`}>
-          {filled}/{total} filled
-        </span>
-      </div>
-      <div
-        ref={pitchRef}
-        className="qfk-pitch relative w-full overflow-hidden rounded-lg bg-green-700 touch-none select-none"
-        style={{ aspectRatio: '3/4' }}
-      >
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="none">
-          <defs>
-            <pattern id={`builder-mow-${team}`} width="10" height="20" patternUnits="userSpaceOnUse">
-              <rect width="10" height="20" fill="#1e6332" />
-              <rect x="0" width="5" height="20" fill="#237039" />
-            </pattern>
-          </defs>
-          <rect x="0" y="0" width="100" height="140" fill={`url(#builder-mow-${team})`} />
-          <g stroke="#F4EBDD" strokeWidth="0.4" fill="none" opacity="0.5">
-            <rect x="3" y="3" width="94" height="134" rx="1" />
-            <line x1="3" y1="70" x2="97" y2="70" />
-            <circle cx="50" cy="70" r="10" />
-            <rect x="25" y="3" width="50" height="18" />
-            <rect x="36" y="3" width="28" height="7" />
-            <rect x="25" y="119" width="50" height="18" />
-            <rect x="36" y="130" width="28" height="7" />
-          </g>
-        </svg>
-
-        {slots.map((slot, i) => {
-          const player = starters.find((p) => p.slot_index === i);
-          const isGK = slot.position_code === 'GK';
-          const bg = isGK ? gkColor : primary;
-          const txt = isGK ? '#F4EBDD' : textColor;
-
-          return (
-            <div key={i}
-              data-lineup-target="slot" data-team={team} data-slot={i}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${slot.x}%`, top: `${slot.y}%`, touchAction: 'none' }}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); onSlotDrop(team, i); }}
-            >
-              <div
-                className="flex flex-col items-center cursor-grab active:cursor-grabbing"
-                draggable={!!player}
-                onDragStart={e => {
-                  if (player) { e.dataTransfer.setData('text/plain', player.id); onPlayerDragStart(player.id); }
-                }}
-                onPointerDown={(e) => {
-                  if (player) {
-                    e.stopPropagation();
-                    e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                    onPlayerDragStart(player.id);
-                  }
-                }}
-                onClick={() => player && onEditPlayer(editingPlayerId === player.id ? null : player.id)}
-              >
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold shadow-lg ring-2"
-                  style={{ backgroundColor: bg, color: txt, borderColor: secondary }}
-                >
-                  {player ? player.jersey_number : slot.label}
-                </div>
-                {player && (
-                  <span className="mt-0.5 max-w-[70px] truncate text-[8px] font-semibold text-white"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-                    {player.name}
-                  </span>
-                )}
-                {editingPlayerId === player?.id && (
-                  <PlayerEditPopover
-                    player={player!}
-                    onUpdate={(field, val) => onUpdatePlayer(player!.id, field, val)}
-                    onClose={() => onEditPlayer(null)}
-                  />
-                )}
+    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="min-w-0 self-start sticky top-2 rounded-lg border border-neutral-800 bg-neutral-900 p-2">
+        <h3 className="mb-2 text-xs font-bold">Players ({allPlayers.length})</h3>
+        <div className="max-h-[55vh] space-y-1 overflow-y-auto">
+          {allPlayers.map(p => <button type="button" key={p.id} {...sourceProps(p.id)} onClick={() => select(p.id)}
+            aria-label={`Select ${p.name}`} aria-pressed={selectedId === p.id}
+            className={`w-full min-h-11 touch-none select-none rounded-md border p-2 text-left text-xs ${selectedId === p.id ? 'border-amber-500 bg-amber-500/20' : 'border-neutral-700 bg-neutral-800'}`}>
+            <span className="block break-words font-semibold">{p.name}</span>
+            <span className="block text-[10px] text-neutral-400">#{p.jersey_number} · {p.team ? `${name(p.team)}${p.status === 'substitute' ? ' sub' : ''}` : 'Available'}</span>
+          </button>)}
+          {!allPlayers.length && <p className="text-xs text-neutral-400">No players yet. Add one below.</p>}
+        </div>
+        <details className="mt-2 text-xs"><summary className="cursor-pointer py-2 font-semibold">+ New player</summary>{props.playerForm}</details>
+      </aside>
+      <div className="min-w-0 space-y-2">
+        <div className="flex gap-1 md:hidden" role="group" aria-label="Pitch team">
+          {(['A','B'] as const).map(team => <button key={team} onClick={() => setMobileTeam(team)} aria-pressed={mobileTeam === team}
+            className={`min-h-11 min-w-0 flex-1 rounded-lg px-2 text-xs font-semibold ${mobileTeam === team ? 'bg-amber-500 text-neutral-950' : 'bg-neutral-800 text-neutral-400'}`}>{name(team)}</button>)}
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          {(['A','B'] as const).map(team => <div key={team} className={`${mobileTeam !== team ? 'hidden md:block' : ''} min-w-0`}>
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-1.5 sm:p-2">
+              <div className="mb-2 flex flex-wrap justify-between gap-1 text-xs"><strong>{name(team)}</strong><span>{players.filter(p=>p.team===team && p.status==='starter').length}/{slots[team].length} filled</span></div>
+              <div className="qfk-pitch relative w-full overflow-hidden rounded-lg bg-green-700" style={{aspectRatio:'3/4'}}>
+                <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 140" preserveAspectRatio="none">
+                  <rect width="100" height="140" fill="#237039" />
+                  <g stroke="#F4EBDD" strokeWidth="0.4" fill="none" opacity="0.6"><rect x="3" y="3" width="94" height="134"/><line x1="3" y1="70" x2="97" y2="70"/><circle cx="50" cy="70" r="10"/><rect x="25" y="3" width="50" height="18"/><rect x="25" y="119" width="50" height="18"/></g>
+                </svg>
+                {slots[team].map((slot,i) => {
+                  const p=players.find(p=>p.team===team && p.status==='starter' && p.slot_index===i);
+                  return <button type="button" key={i} data-lineup-target="slot" data-team={team} data-slot={i}
+                    {...(p ? sourceProps(p.id) : {})} onClick={()=>destinationClick(team,i,p)}
+                    aria-label={`${name(team)} ${slot.label}${p ? `: ${p.name}` : ': empty'}`} aria-pressed={!!p && selectedId===p.id}
+                    className="absolute flex min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 touch-none select-none flex-col items-center justify-center rounded-lg"
+                    style={{left:`${slot.x}%`,top:`${slot.y}%`,outline:p && selectedId===p.id ? '2px solid #fbbf24' : undefined}}>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold shadow-lg sm:h-8 sm:w-8"
+                      style={{backgroundColor:slot.position_code==='GK' ? (team==='A'?props.teamAGK:props.teamBGK) : (team==='A'?props.teamAPrimary:props.teamBPrimary),color:team==='A'?props.teamAText:props.teamBText,border:`2px solid ${team==='A'?props.teamASecondary:props.teamBSecondary}`}}>{p?.jersey_number ?? slot.label}</span>
+                    <span className="max-w-[54px] truncate text-[9px] font-semibold text-white" style={{textShadow:'0 1px 2px #000'}}>{p?.name ?? slot.label}</span>
+                  </button>;
+                })}
               </div>
-
-              {/* Empty slot drop target */}
-              {!player && (
-                <div
-                  className="absolute inset-0 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                  style={{ width: 36, height: 36, left: '50%', top: '50%' }}
-                  onPointerUp={() => onSlotDrop(team, i)}
-                />
-              )}
+              {!slots[team].length && <p className="p-2 text-xs">Choose a formation in Edit Match first.</p>}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PlayerEditPopover({
-  player,
-  onUpdate,
-  onClose,
-}: {
-  player: BuilderPlayer;
-  onUpdate: (field: keyof BuilderPlayer, value: string | number) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute top-10 z-50 flex flex-col gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 p-2 shadow-xl"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <input
-        type="text"
-        value={player.name}
-        onChange={(e) => onUpdate('name', e.target.value)}
-        className="w-32 rounded border border-neutral-600 bg-neutral-800 px-2 py-1 text-xs text-white"
-        placeholder="Name"
-      />
-      <input
-        type="number"
-        value={player.jersey_number}
-        onChange={(e) => onUpdate('jersey_number', parseInt(e.target.value) || 0)}
-        className="w-32 rounded border border-neutral-600 bg-neutral-800 px-2 py-1 text-xs text-white"
-        placeholder="Number"
-      />
-      <select
-        value={player.position}
-        onChange={(e) => onUpdate('position', e.target.value)}
-        className="w-32 rounded border border-neutral-600 bg-neutral-800 px-2 py-1 text-xs text-white"
-      >
-        {POSITION_OPTIONS.map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
-      <div className="flex gap-1">
-        <button onClick={onClose}
-          className="flex-1 rounded bg-neutral-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-neutral-600">
-          Done
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PlayerChip({
-  player, onDragStart, onEdit, isEditing, onUpdate, onRemove,
-}: {
-  player: BuilderPlayer;
-  onDragStart: (id: string) => void;
-  onEdit: () => void;
-  isEditing: boolean;
-  onUpdate: (id: string, field: keyof BuilderPlayer, value: string | number) => void;
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div
-      className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 cursor-grab active:cursor-grabbing touch-none"
-      draggable
-      onDragStart={e => { e.dataTransfer.setData('text/plain', player.id); onDragStart(player.id); }}
-      onPointerDown={(e) => {
-        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId);
-        onDragStart(player.id);
-      }}
-      onClick={onEdit}
-    >
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950">
-        {player.jersey_number}
-      </span>
-      <span className="flex-1 truncate text-xs text-white">{player.name}</span>
-      {isEditing && (
-        <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-          <input type="text" value={player.name}
-            onChange={(e) => onUpdate(player.id, 'name', e.target.value)}
-            className="w-20 rounded border border-neutral-600 bg-neutral-700 px-1 py-0.5 text-[10px] text-white" />
-          <input type="number" value={player.jersey_number}
-            onChange={(e) => onUpdate(player.id, 'jersey_number', parseInt(e.target.value) || 0)}
-            className="w-20 rounded border border-neutral-600 bg-neutral-700 px-1 py-0.5 text-[10px] text-white" />
-          <button onClick={() => onRemove(player.id)}
-            className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Remove</button>
+          </div>)}
         </div>
-      )}
-    </div>
-  );
-}
-
-function SubPanel({
-  team, name, subs, primary, textColor, onDrop, isActive,
-  onDragStart, onEdit, editingId, onUpdate, onRemove,
-}: {
-  team: Side;
-  name: string;
-  subs: BuilderPlayer[];
-  primary: string;
-  textColor: string;
-  onDrop: () => void;
-  isActive: boolean;
-  onDragStart: (id: string) => void;
-  onEdit: (id: string | null) => void;
-  editingId: string | null;
-  onUpdate: (id: string, field: keyof BuilderPlayer, value: string | number) => void;
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
-      <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-500">
-        {name} Subs ({subs.length})
-      </h4>
-      <DropZone label="Drop to make sub" onDrop={onDrop} isActive={isActive} compact team={team} />
-      <div className="mt-2 space-y-1">
-        {subs.map((p) => (
-          <div key={p.id}
-            className="flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 cursor-grab active:cursor-grabbing touch-none"
-            draggable
-            onDragStart={e => { e.dataTransfer.setData('text/plain', p.id); onDragStart(p.id); }}
-            onPointerDown={(e) => {
-              e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId);
-              onDragStart(p.id);
-            }}
-            onClick={() => onEdit(editingId === p.id ? null : p.id)}
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold"
-              style={{ backgroundColor: primary, color: textColor }}>
-              {p.jersey_number}
-            </span>
-            <span className="flex-1 truncate text-xs text-white">{p.name}</span>
-            {editingId === p.id && (
-              <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-                <input type="text" value={p.name}
-                  onChange={(e) => onUpdate(p.id, 'name', e.target.value)}
-                  className="w-20 rounded border border-neutral-600 bg-neutral-700 px-1 py-0.5 text-[10px] text-white" />
-                <input type="number" value={p.jersey_number}
-                  onChange={(e) => onUpdate(p.id, 'jersey_number', parseInt(e.target.value) || 0)}
-                  className="w-20 rounded border border-neutral-600 bg-neutral-700 px-1 py-0.5 text-[10px] text-white" />
-                <button onClick={() => onRemove(p.id)}
-                  className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Remove</button>
-              </div>
-            )}
-          </div>
-        ))}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(['A','B'] as const).map(team => <button type="button" key={team} data-lineup-target="sub" data-team={team}
+            onClick={()=>selectedId && place(selectedId,team)} className="min-h-11 rounded-lg border border-dashed border-neutral-600 bg-neutral-900 p-2 text-left text-xs">
+            <strong>{name(team)} substitutes</strong><span className="block">{players.filter(p=>p.team===team && p.status==='substitute').map(p=>p.name).join(', ') || 'Tap or drop to add'}</span>
+          </button>)}
+        </div>
+        <button type="button" data-lineup-target="unassigned" onClick={()=>selectedId && place(selectedId,null)} className="min-h-11 w-full rounded-lg border border-dashed border-neutral-600 p-2 text-xs">Tap or drop to unassign</button>
       </div>
     </div>
-  );
+    {selected && <details className="rounded-lg border border-neutral-700 bg-neutral-900 p-3"><summary className="cursor-pointer text-sm font-semibold">Edit {selected.name}</summary><div className="mt-3 flex flex-wrap gap-3">
+      <label className="text-xs">Name<input className="mt-1 block w-40 rounded border p-2" value={selected.name} onChange={e=>updateSelected('name',e.target.value)}/></label>
+      <label className="text-xs">Jersey number<input className="mt-1 block w-24 rounded border p-2" type="number" min={0} value={selected.jersey_number} onChange={e=>updateSelected('jersey_number',Number(e.target.value))}/></label>
+      <label className="text-xs">Position<select className="mt-1 block rounded border p-2" value={selected.position} onChange={e=>updateSelected('position',e.target.value)}>{POSITION_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></label>
+    </div></details>}
+  </div>;
 }
-
-function DropZone({ label, onDrop, isActive, compact, team }: { label: string; onDrop: () => void; isActive: boolean; compact?: boolean; team?: Side }) {
-  return (
-    <div
-      data-lineup-target={team ? 'sub' : 'unassigned'} data-team={team}
-      onPointerUp={onDrop}
-      onDragOver={e => e.preventDefault()}
-      onDrop={e => { e.preventDefault(); onDrop(); }}
-      className={`rounded-lg border-2 border-dashed text-center transition-colors ${
-        compact ? 'border-neutral-700 py-1.5 text-[10px]' : 'border-neutral-600 py-3 text-xs'
-      } ${isActive ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'text-neutral-500'}`}
-    >
-      {label}
-    </div>
-  );
-}
-
