@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { SavedFormation, Side, MatchStatus } from '@/lib/formation-types';
+import type { SavedFormation, MatchStatus } from '@/lib/formation-types';
 import { POSTER_THEMES } from '@/lib/formation-types';
 
 export interface MatchFormData {
@@ -58,7 +58,7 @@ const defaults: MatchFormData = {
 };
 
 export function MatchForm({ initial, formations, onSubmit, onCancel }: MatchFormProps) {
-  const [data, setData] = useState<MatchFormData>({ ...defaults, ...initial });
+  const [data, setData] = useState<MatchFormData>(() => ({ ...defaults, match_date: new Date().toLocaleDateString('en-CA'), ...initial }));
 
   const set = <K extends keyof MatchFormData>(key: K, val: MatchFormData[K]) =>
     setData((d) => ({ ...d, [key]: val }));
@@ -75,32 +75,32 @@ export function MatchForm({ initial, formations, onSubmit, onCancel }: MatchForm
       <Section title="Match Information">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Match Number">
-            <input type="number" min={1} value={data.match_number}
+            <input required type="number" min={1} value={data.match_number}
               onChange={(e) => set('match_number', parseInt(e.target.value) || 1)}
               className={inputCls} />
           </Field>
           <Field label="Date">
-            <input type="date" value={data.match_date}
+            <input required type="date" value={data.match_date}
               onChange={(e) => set('match_date', e.target.value)}
               className={inputCls} />
           </Field>
           <Field label="Start Time">
-            <input type="text" value={data.start_time}
+            <input required type="text" value={data.start_time}
               onChange={(e) => set('start_time', e.target.value)}
               className={inputCls} placeholder="8:00 PM" />
           </Field>
           <Field label="End Time">
-            <input type="text" value={data.end_time}
+            <input required type="text" value={data.end_time}
               onChange={(e) => set('end_time', e.target.value)}
               className={inputCls} placeholder="9:00 PM" />
           </Field>
           <Field label="Venue" full>
-            <input type="text" value={data.venue}
+            <input required type="text" value={data.venue}
               onChange={(e) => set('venue', e.target.value)}
               className={inputCls} placeholder="Abu Hamour" />
           </Field>
           <Field label="Match Title" full>
-            <input type="text" value={data.title}
+            <input required type="text" value={data.title}
               onChange={(e) => set('title', e.target.value)}
               className={inputCls} placeholder="Friday Night Football" />
           </Field>
@@ -225,7 +225,7 @@ function TeamConfig(props: TeamConfigProps) {
       <div className="space-y-3">
         <label>
           <span className="mb-1 block text-xs font-semibold text-neutral-400">Team Name</span>
-          <input type="text" value={props.name} onChange={(e) => props.onName(e.target.value)} className={inputCls} />
+          <input required type="text" value={props.name} onChange={(e) => props.onName(e.target.value)} className={inputCls} />
         </label>
         <label>
           <span className="mb-1 block text-xs font-semibold text-neutral-400">Formation</span>

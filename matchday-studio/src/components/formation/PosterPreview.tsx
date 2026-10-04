@@ -1,3 +1,4 @@
+import { downloadPosterPNG } from '@/lib/poster-export';
 import { useState, useRef, useCallback } from 'react';
 import { PosterSVG } from '@/components/formation/PosterSVG';
 import type { PosterData } from '@/components/formation/PosterSVG';
@@ -36,47 +37,8 @@ export function PosterPreview({ data, themeId, onSaveVersion, onChangeTheme, onE
       const svgEl = svgRef.current?.querySelector('svg');
       if (!svgEl) throw new Error('SVG not found');
 
-      const svgClone = svgEl.cloneNode(true) as SVGSVGElement;
-      svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      svgClone.setAttribute('width', '2400');
-      svgClone.setAttribute('height', '3200');
-
-      const svgString = new XMLSerializer().serializeToString(svgClone);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const svgUrl = URL.createObjectURL(svgBlob);
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Image load failed'));
-        img.src = svgUrl;
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 2400;
-      canvas.height = 3200;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
-
-      ctx.fillStyle = '#0a0a0a';
-      ctx.fillRect(0, 0, 2400, 3200);
-      ctx.drawImage(img, 0, 0, 2400, 3200);
-
-      URL.revokeObjectURL(svgUrl);
-
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `QFK-Match-${String(data.matchNumber).padStart(3, '0')}-${resolvedTheme}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        setExportMsg('Downloaded successfully');
-      }, 'image/png');
-
+      await downloadPosterPNG(svgEl, `QFK-Match-${String(data.matchNumber).padStart(3, '0')}-${resolvedTheme}.png`);
+      setExportMsg('Downloaded successfully');
       onSaveVersion(resolvedTheme);
     } catch (err) {
       setExportMsg(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
