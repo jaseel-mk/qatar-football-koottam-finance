@@ -96,7 +96,7 @@ export function FormationBuilder(props: FormationBuilderProps) {
         <div className="max-h-[55vh] space-y-1 overflow-y-auto">
           {allPlayers.map(p => <button type="button" key={p.id} {...sourceProps(p.id)} onClick={() => select(p.id)}
             aria-label={`Select ${p.name}`} aria-pressed={selectedId === p.id}
-            className={`w-full min-h-11 touch-none select-none rounded-md border p-2 text-left text-xs ${selectedId === p.id ? 'border-amber-500 bg-amber-500/20' : 'border-neutral-700 bg-neutral-800'}`}>
+            className={`w-full min-h-11 touch-pan-y select-none rounded-md border p-2 text-left text-xs ${selectedId === p.id ? 'border-amber-500 bg-amber-500/20' : 'border-neutral-700 bg-neutral-800'}`}>
             <span className="block break-words font-semibold">{p.name}</span>
             <span className="block text-[10px] text-neutral-400">#{p.jersey_number} · {p.team ? `${name(p.team)}${p.status === 'substitute' ? ' sub' : ''}` : 'Available'}</span>
           </button>)}
@@ -151,3 +151,4 @@ export function FormationBuilder(props: FormationBuilderProps) {
     </div></details>}
   </div>;
 }
+
